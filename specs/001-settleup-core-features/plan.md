@@ -124,7 +124,7 @@ React Native 프론트엔드와 Spring Boot API 서버로 구성되며, MLOps �
 
 ### Documentation (this feature)
 
-\`\`\`text
+```text
 specs/001-settleup-core-features/
 ├── plan.md              # 이 파일
 ├── research.md          # Phase 0 기술 조사
@@ -135,11 +135,11 @@ specs/001-settleup-core-features/
 │   ├── games-api.yaml
 │   └── categories-api.yaml
 └── tasks.md             # Phase 2 작업 목록 (/speckit.tasks로 생성)
-\`\`\`
+```
 
 ### Source Code (repository root)
 
-\`\`\`text
+```text
 # Mobile + API 구조
 mobile/
 ├── src/
@@ -190,7 +190,7 @@ infrastructure/
 │   └── nginx.conf
 ├── k8s/                 # Kubernetes (선택사항, 고급 단계)
 └── scripts/             # 빌드, 배포 스크립트
-\`\`\`
+```
 
 **Structure Decision**: Mobile + API 구조 선택 (Option 3 변형)
 - React Native 앱은 크로스 플랫폼이므로 단일 `mobile/` 디렉토리
