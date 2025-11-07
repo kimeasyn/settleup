@@ -1,0 +1,354 @@
+openapi: 3.0.3
+info:
+  title: SettleUp Expenses API
+  description: 여행 정산 지출 관리 API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: 로컬 개발 서버
+
+paths:
+  /settlements/{settlementId}/expenses:
+    get:
+      summary: 지출 목록 조회
+      tags: [Expenses]
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: 카테고리 필터
+        - name: payerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: 지불자 필터
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Expense'
+
+    post:
+      summary: 지출 추가
+      tags: [Expenses]
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '201':
+          description: 추가됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '400':
+          description: 잘못된 요청 (분할 합계 불일치 등)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /settlements/{settlementId}/expenses/{expenseId}:
+    get:
+      summary: 지출 상세 조회
+      tags: [Expenses]
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseDetail'
+
+    put:
+      summary: 지출 수정
+      tags: [Expenses]
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExpenseRequest'
+      responses:
+        '200':
+          description: 수정됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '409':
+          description: 버전 충돌
+
+    delete:
+      summary: 지출 삭제
+      tags: [Expenses]
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 삭제됨
+
+  /settlements/{settlementId}/expenses/categorize:
+    post:
+      summary: AI 카테고리 추천 (ML 서비스 프록시)
+      tags: [Expenses]
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description:
+                  type: string
+                  maxLength: 200
+      responses:
+        '200':
+          description: 카테고리 추천
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category:
+                    type: string
+                    example: 식사
+                  confidence:
+                    type: number
+                    format: float
+                    example: 0.92
+                  alternatives:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        category:
+                          type: string
+                        confidence:
+                          type: number
+
+components:
+  schemas:
+    Expense:
+      type: object
+      required: [id, settlementId, payerId, amount, description, expenseDate, createdAt, updatedAt, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        settlementId:
+          type: string
+          format: uuid
+        payerId:
+          type: string
+          format: uuid
+        payerName:
+          type: string
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        category:
+          type: string
+          nullable: true
+        categoryAI:
+          type: string
+          nullable: true
+          description: AI 추천 카테고리
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expenseDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+
+    ExpenseDetail:
+      allOf:
+        - $ref: '#/components/schemas/Expense'
+        - type: object
+          properties:
+            splits:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExpenseSplit'
+
+    ExpenseSplit:
+      type: object
+      required: [id, expenseId, participantId, share]
+      properties:
+        id:
+          type: string
+          format: uuid
+        expenseId:
+          type: string
+          format: uuid
+        participantId:
+          type: string
+          format: uuid
+        participantName:
+          type: string
+        share:
+          type: number
+          format: decimal
+          minimum: 0
+
+    CreateExpenseRequest:
+      type: object
+      required: [payerId, amount, description, expenseDate, splits]
+      properties:
+        payerId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        category:
+          type: string
+          nullable: true
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expenseDate:
+          type: string
+          format: date-time
+        splits:
+          type: array
+          items:
+            type: object
+            required: [participantId, share]
+            properties:
+              participantId:
+                type: string
+                format: uuid
+              share:
+                type: number
+                format: decimal
+                minimum: 0
+
+    UpdateExpenseRequest:
+      type: object
+      required: [version]
+      properties:
+        payerId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        category:
+          type: string
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expenseDate:
+          type: string
+          format: date-time
+        splits:
+          type: array
+          items:
+            type: object
+            required: [participantId, share]
+            properties:
+              participantId:
+                type: string
+                format: uuid
+              share:
+                type: number
+                format: decimal
+        version:
+          type: integer
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+tags:
+  - name: Expenses
+    description: 지출 관리 (여행 정산)
