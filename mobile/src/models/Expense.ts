@@ -52,8 +52,29 @@ export interface ExpenseSplit {
   /** 참가자 ID (외래키) */
   participantId: string;
 
+  /** 참가자 이름 (조회 시 포함) */
+  participantName?: string;
+
   /** 분담 비율 (0.0 ~ 1.0) 또는 금액 */
   share: number;
+
+  /** 분담 비율 (%) */
+  sharePercentage?: number;
+}
+
+/**
+ * 지출 상세 정보 (분담 내역 포함)
+ * API 응답 또는 조회 시 사용
+ */
+export interface ExpenseWithDetails extends Expense {
+  /** 지불자 이름 */
+  payerName: string;
+
+  /** 유효 카테고리 (사용자 지정 우선, 없으면 AI 카테고리) */
+  effectiveCategory?: string;
+
+  /** 분담 내역 목록 */
+  splits?: ExpenseSplit[];
 }
 
 /**
