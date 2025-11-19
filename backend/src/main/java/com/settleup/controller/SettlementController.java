@@ -1,0 +1,153 @@
+package com.settleup.controller;
+
+import com.settleup.dto.SettlementCreateRequest;
+import com.settleup.dto.SettlementResponse;
+import com.settleup.exception.ErrorResponse;
+import com.settleup.service.SettlementService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+/**
+ * Settlement Controller
+ * 정산 REST API
+ */
+@Slf4j
+@RestController
+@RequestMapping("/settlements")
+@RequiredArgsConstructor
+@Tag(name = "Settlements", description = "정산 관리 API")
+public class SettlementController {
+
+    private final SettlementService settlementService;
+
+    /**
+     * 정산 생성
+     * POST /api/v1/settlements
+     */
+    @Operation(
+            summary = "정산 생성",
+            description = "새로운 여행 정산 또는 게임 정산을 생성합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "정산 생성 성공",
+                    content = @Content(schema = @Schema(implementation = SettlementResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (유효성 검증 실패)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @PostMapping
+    public ResponseEntity<SettlementResponse> createSettlement(
+            @Valid @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "정산 생성 요청 정보",
+                    required = true
+            )
+            SettlementCreateRequest request) {
+
+        log.info("POST /settlements - Creating settlement: {}", request.getTitle());
+
+        // TODO: 실제로는 인증된 사용자 ID를 사용
+        // 현재는 테스트용으로 샘플 사용자 ID 사용
+        UUID creatorId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+        SettlementResponse response = settlementService.createSettlement(request, creatorId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * 정산 조회
+     * GET /api/v1/settlements/{id}
+     */
+    @Operation(
+            summary = "정산 조회",
+            description = "ID로 특정 정산의 상세 정보를 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = SettlementResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "정산을 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<SettlementResponse> getSettlement(
+            @Parameter(description = "정산 ID", required = true)
+            @PathVariable UUID id) {
+        log.info("GET /settlements/{} - Getting settlement", id);
+
+        SettlementResponse response = settlementService.getSettlement(id);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 정산 삭제
+     * DELETE /api/v1/settlements/{id}
+     */
+    @Operation(
+            summary = "정산 삭제",
+            description = "ID로 특정 정산을 삭제합니다. 관련된 모든 데이터도 함께 삭제됩니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "삭제 성공"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "정산을 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSettlement(
+            @Parameter(description = "정산 ID", required = true)
+            @PathVariable UUID id) {
+        log.info("DELETE /settlements/{} - Deleting settlement", id);
+
+        settlementService.deleteSettlement(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Health Check
+     * GET /api/v1/settlements/health
+     */
+    @Operation(
+            summary = "헬스 체크",
+            description = "서버 상태를 확인합니다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "서버 정상 작동 중"
+    )
+    @GetMapping("/health")
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("SettleUp Backend is running!");
+    }
+}

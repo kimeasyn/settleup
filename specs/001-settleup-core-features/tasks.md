@@ -26,17 +26,17 @@
 
 **Purpose**: 프로젝트 초기화 및 기본 구조
 
-- [ ] T001 Create root project structure (mobile/, backend/, ml-service/, infrastructure/)
-- [ ] T002 Initialize infrastructure/docker/docker-compose.yml with PostgreSQL and Redis
-- [ ] T003 Create database schema in infrastructure/docker/init-db.sql
-- [ ] T004 [P] Initialize Spring Boot project in backend/ with Gradle build.gradle
-- [ ] T005 [P] Configure backend/src/main/resources/application.yml
-- [ ] T006 [P] Initialize React Native Expo project in mobile/
-- [ ] T007 [P] Install mobile dependencies in mobile/package.json
-- [ ] T008 [P] Initialize Python project in ml-service/ with requirements.txt
-- [ ] T009 Start Docker containers and verify database connectivity
+- [X] T001 Create root project structure (mobile/, backend/, ml-service/, infrastructure/)
+- [X] T002 Initialize infrastructure/docker/docker-compose.yml with PostgreSQL and Redis
+- [X] T003 Create database schema in infrastructure/docker/init-db.sql
+- [X] T004 [P] Initialize Spring Boot project in backend/ with Gradle build.gradle
+- [X] T005 [P] Configure backend/src/main/resources/application.yml
+- [X] T006 [P] Initialize React Native Expo project in mobile/
+- [X] T007 [P] Install mobile dependencies in mobile/package.json
+- [X] T008 [P] Initialize Python project in ml-service/ with requirements.txt
+- [X] T009 Start Docker containers and verify database connectivity
 
-**Checkpoint**: Docker 환경 실행, 데이터베이스 스키마 생성 완료
+**Checkpoint**: Docker 환경 실행, 데이터베이스 스키마 생성 완료 ✅
 
 ---
 
@@ -46,20 +46,20 @@
 
 ⚠️ **CRITICAL**: 이 Phase 완료 전까지 사용자 스토리 작업 시작 불가
 
-- [ ] T010 [P] Create User entity in backend/src/main/java/com/settleup/domain/user/User.java
-- [ ] T011 [P] Create Settlement entity in backend/src/main/java/com/settleup/domain/settlement/Settlement.java
-- [ ] T012 [P] Create Participant entity in backend/src/main/java/com/settleup/domain/participant/Participant.java
-- [ ] T013 [P] Create UserRepository in backend/src/main/java/com/settleup/repository/UserRepository.java
-- [ ] T014 [P] Create SettlementRepository in backend/src/main/java/com/settleup/repository/SettlementRepository.java
-- [ ] T015 [P] Create ParticipantRepository in backend/src/main/java/com/settleup/repository/ParticipantRepository.java
-- [ ] T016 [P] Configure Redis in backend/src/main/java/com/settleup/config/RedisConfig.java
-- [ ] T017 [P] Setup error handling in backend/src/main/java/com/settleup/exception/GlobalExceptionHandler.java
-- [ ] T018 [P] Create API client in mobile/src/services/api/client.ts
-- [ ] T019 [P] Setup SQLite database in mobile/src/services/storage/database.ts
-- [ ] T020 [P] Create navigation structure in mobile/src/navigation/AppNavigator.tsx
-- [ ] T021 Test foundation: Create basic settlement via API and verify in database
+- [X] T010 [P] Create User entity in backend/src/main/java/com/settleup/domain/user/User.java
+- [X] T011 [P] Create Settlement entity in backend/src/main/java/com/settleup/domain/settlement/Settlement.java
+- [X] T012 [P] Create Participant entity in backend/src/main/java/com/settleup/domain/participant/Participant.java
+- [X] T013 [P] Create UserRepository in backend/src/main/java/com/settleup/repository/UserRepository.java
+- [X] T014 [P] Create SettlementRepository in backend/src/main/java/com/settleup/repository/SettlementRepository.java
+- [X] T015 [P] Create ParticipantRepository in backend/src/main/java/com/settleup/repository/ParticipantRepository.java
+- [X] T016 [P] Configure Redis in backend/src/main/java/com/settleup/config/RedisConfig.java
+- [X] T017 [P] Setup error handling in backend/src/main/java/com/settleup/exception/GlobalExceptionHandler.java
+- [X] T018 [P] Create API client in mobile/src/services/api/client.ts
+- [X] T019 [P] Setup SQLite database in mobile/src/services/storage/database.ts
+- [X] T020 [P] Create navigation structure in mobile/src/navigation/AppNavigator.tsx
+- [X] T021 Test foundation: Create basic settlement via API and verify in database
 
-**Checkpoint**: 기본 엔티티, Repository, 모바일 인프라 준비 완료 - 사용자 스토리 구현 시작 가능
+**Checkpoint**: 기본 엔티티, Repository, 모바일 인프라 준비 완료 - 사용자 스토리 구현 시작 가능 ✅
 
 ---
 
