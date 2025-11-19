@@ -2,6 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { View, Text, StyleSheet } from 'react-native';
+import HomeScreen from '../screens/HomeScreen';
+import TravelSettlementScreen from '../screens/TravelSettlementScreen';
 
 /**
  * Navigation 구조
@@ -9,18 +11,15 @@ import { View, Text, StyleSheet } from 'react-native';
  * Stack: 각 탭 내부의 화면 스택
  */
 
-const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
+export type RootStackParamList = {
+  Home: undefined;
+  TravelSettlement: { settlementId: string };
+  CreateSettlement: undefined;
+  SettlementResult: { settlementId: string };
+};
 
-/**
- * 임시 홈 화면 (Phase 3에서 구현)
- */
-const HomeScreen = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>SettleUp 홈</Text>
-    <Text style={styles.subtext}>여행/게임 정산 관리</Text>
-  </View>
-);
+const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
 
 /**
  * 임시 히스토리 화면 (Phase 4에서 구현)
@@ -36,12 +35,34 @@ const HistoryScreen = () => (
  * Home Stack Navigator
  */
 const HomeStack = () => (
-  <Stack.Navigator>
+  <Stack.Navigator
+    screenOptions={{
+      headerStyle: {
+        backgroundColor: '#2196F3',
+      },
+      headerTintColor: '#FFFFFF',
+      headerTitleStyle: {
+        fontWeight: '600',
+      },
+    }}
+  >
     <Stack.Screen
-      name="HomeMain"
+      name="Home"
       component={HomeScreen}
-      options={{ title: '홈' }}
+      options={{
+        title: 'SettleUp',
+        headerShown: false,
+      }}
     />
+    <Stack.Screen
+      name="TravelSettlement"
+      component={TravelSettlementScreen}
+      options={{
+        title: '정산 상세',
+      }}
+    />
+    {/* TODO: CreateSettlement 화면 추가 */}
+    {/* TODO: SettlementResult 화면 추가 */}
   </Stack.Navigator>
 );
 
@@ -66,12 +87,12 @@ export const AppNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#007AFF',
+        tabBarActiveTintColor: '#2196F3',
         tabBarInactiveTintColor: '#8E8E93',
       }}
     >
       <Tab.Screen
-        name="Home"
+        name="HomeTab"
         component={HomeStack}
         options={{
           tabBarLabel: '홈',
