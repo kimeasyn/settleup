@@ -1,8 +1,10 @@
 package com.settleup.dto;
 
 import com.settleup.domain.settlement.SettlementType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,5 +36,8 @@ public class SettlementCreateRequest {
 
     private LocalDate endDate;
 
+    @Size(min = 3, max = 3, message = "통화 코드는 3글자여야 합니다")
+    @Pattern(regexp = "^[A-Z]{3}$", message = "통화 코드는 3글자 대문자여야 합니다 (예: KRW, USD, EUR)")
+    @Schema(description = "통화 코드 (ISO 4217)", example = "KRW", defaultValue = "KRW")
     private String currency = "KRW";
 }

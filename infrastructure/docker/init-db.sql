@@ -114,7 +114,8 @@ CREATE INDEX idx_game_results_participant ON game_results(participant_id);
 CREATE INDEX idx_transactions_settlement ON transactions(settlement_id, status);
 
 -- 샘플 데이터 (테스트용)
-INSERT INTO users (name, email) VALUES
-    ('테스트 사용자', 'test@example.com'),
-    ('김철수', 'chulsoo@example.com'),
-    ('이영희', 'younghee@example.com');
+-- 특정 UUID로 테스트 사용자 생성 (API 테스트용)
+INSERT INTO users (id, name, email) VALUES
+    ('00000000-0000-0000-0000-000000000001', '테스트 사용자', 'test@example.com'),
+    ('00000000-0000-0000-0000-000000000002', '김철수', 'chulsoo@example.com'),
+    ('00000000-0000-0000-0000-000000000003', '이영희', 'younghee@example.com');
