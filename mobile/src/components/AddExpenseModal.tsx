@@ -37,8 +37,6 @@ export default function AddExpenseModal({
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>('');
   const [payerId, setPayerId] = useState<string>('');
-  const [splitMode, setSplitMode] = useState<'equal' | 'manual'>('equal');
-  const [manualSplits, setManualSplits] = useState<{ [key: string]: string }>({});
   const [submitting, setSubmitting] = useState(false);
 
   const activeParticipants = participants.filter(p => p.isActive);
@@ -60,8 +58,6 @@ export default function AddExpenseModal({
     setDescription('');
     setCategory('');
     setPayerId(activeParticipants[0]?.id || '');
-    setSplitMode('equal');
-    setManualSplits({});
   };
 
   /**
@@ -72,43 +68,6 @@ export default function AddExpenseModal({
     onClose();
   };
 
-  /**
-   * 균등 분할 계산
-   */
-  const calculateEqualSplits = (): CreateExpenseSplitRequest[] => {
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) return [];
-
-    const splitAmount = amountNum / activeParticipants.length;
-
-    return activeParticipants.map(p => ({
-      participantId: p.id,
-      share: Math.round(splitAmount * 100) / 100, // 소수점 2자리
-    }));
-  };
-
-  /**
-   * 수동 분할 계산
-   */
-  const calculateManualSplits = (): CreateExpenseSplitRequest[] => {
-    return activeParticipants
-      .map(p => ({
-        participantId: p.id,
-        share: parseFloat(manualSplits[p.id] || '0'),
-      }))
-      .filter(split => split.share > 0);
-  };
-
-  /**
-   * 분담 금액 합계 검증
-   */
-  const validateSplits = (splits: CreateExpenseSplitRequest[]): boolean => {
-    const totalSplit = splits.reduce((sum, split) => sum + split.share, 0);
-    const amountNum = parseFloat(amount);
-
-    // 0.01 오차 허용
-    return Math.abs(totalSplit - amountNum) < 0.01;
-  };
 
   /**
    * 지출 추가
@@ -136,34 +95,22 @@ export default function AddExpenseModal({
       return;
     }
 
-    // 분담 내역 계산
-    const splits = splitMode === 'equal'
-      ? calculateEqualSplits()
-      : calculateManualSplits();
-
-    if (splits.length === 0) {
-      Alert.alert('입력 오류', '분담 내역을 입력해주세요.');
-      return;
-    }
-
-    if (!validateSplits(splits)) {
-      Alert.alert(
-        '입력 오류',
-        `분담 금액의 합계가 지출 금액과 일치하지 않습니다.\n지출: ${amountNum}\n분담 합계: ${splits.reduce((sum, s) => sum + s.share, 0).toFixed(2)}`
-      );
-      return;
-    }
-
     try {
       setSubmitting(true);
+
+      // ISO 8601 형식으로 날짜를 변환 (LocalDateTime 호환)
+      const now = new Date();
+      const expenseDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, -1); // 'Z' 제거
 
       const data: CreateExpenseRequest = {
         payerId,
         amount: amountNum,
         category: category || undefined,
         description: description.trim(),
-        expenseDate: new Date().toISOString(),
-        splits,
+        expenseDate,
+        // splits는 나중에 정산 계산 시 지정
       };
 
       await onSubmit(data);
@@ -186,25 +133,6 @@ export default function AddExpenseModal({
     }
   };
 
-  /**
-   * 수동 분할 금액 변경
-   */
-  const handleManualSplitChange = (participantId: string, value: string) => {
-    setManualSplits(prev => ({
-      ...prev,
-      [participantId]: value,
-    }));
-  };
-
-  /**
-   * 수동 분할 금액 합계
-   */
-  const getManualSplitsTotal = (): number => {
-    return Object.values(manualSplits).reduce((sum, val) => {
-      const num = parseFloat(val || '0');
-      return sum + (isNaN(num) ? 0 : num);
-    }, 0);
-  };
 
   return (
     <Modal
@@ -307,81 +235,8 @@ export default function AddExpenseModal({
                   </TouchableOpacity>
                 ))}
               </View>
+              <Text style={styles.hint}>분담 방식은 나중에 정산 계산 시 지정됩니다</Text>
             </View>
-
-            {/* 분담 방식 */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>분담 방식</Text>
-              <View style={styles.splitModeContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.splitModeButton,
-                    splitMode === 'equal' && styles.splitModeButtonActive,
-                  ]}
-                  onPress={() => setSplitMode('equal')}
-                  disabled={submitting}
-                >
-                  <Text
-                    style={[
-                      styles.splitModeText,
-                      splitMode === 'equal' && styles.splitModeTextActive,
-                    ]}
-                  >
-                    균등 분할
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.splitModeButton,
-                    splitMode === 'manual' && styles.splitModeButtonActive,
-                  ]}
-                  onPress={() => setSplitMode('manual')}
-                  disabled={submitting}
-                >
-                  <Text
-                    style={[
-                      styles.splitModeText,
-                      splitMode === 'manual' && styles.splitModeTextActive,
-                    ]}
-                  >
-                    수동 입력
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* 수동 분할 입력 */}
-            {splitMode === 'manual' && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>분담 금액</Text>
-                {activeParticipants.map(p => (
-                  <View key={p.id} style={styles.splitInputRow}>
-                    <Text style={styles.splitInputLabel}>{p.name}</Text>
-                    <TextInput
-                      style={styles.splitInput}
-                      placeholder="0"
-                      value={manualSplits[p.id] || ''}
-                      onChangeText={(value) => handleManualSplitChange(p.id, value)}
-                      keyboardType="decimal-pad"
-                      editable={!submitting}
-                    />
-                  </View>
-                ))}
-                <View style={styles.splitSummary}>
-                  <Text style={styles.splitSummaryLabel}>합계:</Text>
-                  <Text
-                    style={[
-                      styles.splitSummaryValue,
-                      Math.abs(getManualSplitsTotal() - parseFloat(amount || '0')) < 0.01
-                        ? styles.splitSummaryValueValid
-                        : styles.splitSummaryValueInvalid,
-                    ]}
-                  >
-                    {getManualSplitsTotal().toFixed(2)}
-                  </Text>
-                </View>
-              </View>
-            )}
           </ScrollView>
 
           {/* 버튼 */}

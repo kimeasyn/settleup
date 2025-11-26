@@ -5,6 +5,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import TravelSettlementScreen from '../screens/TravelSettlementScreen';
 import CreateSettlementScreen from '../screens/CreateSettlementScreen';
+import SettlementResultScreen from '../screens/SettlementResultScreen';
 
 /**
  * Navigation 구조
@@ -69,7 +70,13 @@ const HomeStack = () => (
         title: '정산 생성',
       }}
     />
-    {/* TODO: SettlementResult 화면 추가 */}
+    <Stack.Screen
+      name="SettlementResult"
+      component={SettlementResultScreen}
+      options={{
+        title: '정산 결과',
+      }}
+    />
   </Stack.Navigator>
 );
 
