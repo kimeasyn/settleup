@@ -52,8 +52,7 @@ public class ExpenseDto {
         @NotNull(message = "지출 날짜는 필수입니다")
         private LocalDateTime expenseDate;
 
-        @Schema(description = "지출 분담 내역", required = true)
-        @NotEmpty(message = "분담 내역은 최소 1명 이상이어야 합니다")
+        @Schema(description = "지출 분담 내역 (선택사항, 나중에 정산 계산 시 지정 가능)", required = false)
         @Valid
         private List<ExpenseSplitRequest> splits;
     }

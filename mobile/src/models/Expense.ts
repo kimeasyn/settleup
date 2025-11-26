@@ -96,8 +96,8 @@ export interface CreateExpenseRequest {
   /** 지출 날짜 (ISO 8601: YYYY-MM-DD) */
   expenseDate: string;
 
-  /** 지출 분담 정보 */
-  splits: CreateExpenseSplitRequest[];
+  /** 지출 분담 정보 (선택사항, 나중에 정산 계산 시 지정 가능) */
+  splits?: CreateExpenseSplitRequest[];
 }
 
 /**

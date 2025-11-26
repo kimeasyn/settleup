@@ -68,14 +68,20 @@ public class ExpenseService {
 
         Expense savedExpense = expenseRepository.save(expense);
 
-        // 분담 내역 생성
-        List<ExpenseSplit> splits = createExpenseSplits(savedExpense, request.getSplits(), settlementId);
+        // 분담 내역 생성 (선택사항)
+        List<ExpenseSplit> splits = List.of();
+        if (request.getSplits() != null && !request.getSplits().isEmpty()) {
+            splits = createExpenseSplits(savedExpense, request.getSplits(), settlementId);
 
-        // 분담 금액 합계 검증
-        validateTotalSplits(savedExpense, splits);
+            // 분담 금액 합계 검증 (분담 내역이 있을 때만)
+            validateTotalSplits(savedExpense, splits);
 
-        log.info("Expense created successfully: id={}, splits count={}",
-                savedExpense.getId(), splits.size());
+            log.info("Expense created successfully with splits: id={}, splits count={}",
+                    savedExpense.getId(), splits.size());
+        } else {
+            log.info("Expense created successfully without splits: id={} (splits will be calculated later)",
+                    savedExpense.getId());
+        }
 
         return ExpenseResponse.fromWithSplits(savedExpense, splits);
     }
