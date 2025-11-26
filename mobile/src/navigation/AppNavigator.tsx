@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { View, Text, StyleSheet } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import TravelSettlementScreen from '../screens/TravelSettlementScreen';
+import CreateSettlementScreen from '../screens/CreateSettlementScreen';
 
 /**
  * Navigation 구조
@@ -61,7 +62,13 @@ const HomeStack = () => (
         title: '정산 상세',
       }}
     />
-    {/* TODO: CreateSettlement 화면 추가 */}
+    <Stack.Screen
+      name="CreateSettlement"
+      component={CreateSettlementScreen}
+      options={{
+        title: '정산 생성',
+      }}
+    />
     {/* TODO: SettlementResult 화면 추가 */}
   </Stack.Navigator>
 );

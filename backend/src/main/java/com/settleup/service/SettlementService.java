@@ -11,7 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Settlement Service
@@ -63,6 +65,19 @@ public class SettlementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", id));
 
         return SettlementResponse.from(settlement);
+    }
+
+    /**
+     * 모든 정산 목록 조회
+     */
+    public List<SettlementResponse> getAllSettlements() {
+        log.info("Getting all settlements");
+
+        List<Settlement> settlements = settlementRepository.findAll();
+
+        return settlements.stream()
+                .map(SettlementResponse::from)
+                .collect(Collectors.toList());
     }
 
     /**

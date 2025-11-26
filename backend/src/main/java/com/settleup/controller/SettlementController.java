@@ -79,6 +79,29 @@ public class SettlementController {
     }
 
     /**
+     * 모든 정산 목록 조회
+     * GET /api/v1/settlements
+     */
+    @Operation(
+            summary = "정산 목록 조회",
+            description = "모든 정산 목록을 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공"
+            )
+    })
+    @GetMapping
+    public ResponseEntity<List<SettlementResponse>> getAllSettlements() {
+        log.info("GET /settlements - Getting all settlements");
+
+        List<SettlementResponse> settlements = settlementService.getAllSettlements();
+
+        return ResponseEntity.ok(settlements);
+    }
+
+    /**
      * 정산 조회
      * GET /api/v1/settlements/{id}
      */
