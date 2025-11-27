@@ -110,6 +110,14 @@
   - [x] 정산 결과 DTO 정의
 - [x] 정산 결과 API
   - [x] POST /settlements/{id}/calculate (정산 계산 및 결과 조회)
+- [ ] 백엔드 테스트 코드 작성
+  - [ ] SettlementCalculationService 단위 테스트
+    - [ ] 참가자별 잔액 계산 테스트
+    - [ ] 최소 송금 경로 계산 테스트
+    - [ ] 엣지 케이스 (0원, 소수점 처리, 다수 참가자)
+  - [ ] 정산 계산 API 통합 테스트
+  - [ ] 기존 Service 단위 테스트 (SettlementService, ParticipantService, ExpenseService)
+  - [ ] 기존 API 통합 테스트 (모든 엔드포인트)
 
 ### 모바일
 - [ ] 나머지 처리 UI 구현
