@@ -8,6 +8,7 @@ import com.settleup.dto.SettlementUpdateRequest;
 import com.settleup.exception.ResourceNotFoundException;
 import com.settleup.repository.SettlementRepository;
 import com.settleup.repository.ExpenseRepository;
+import com.settleup.repository.ExpenseSplitRepository;
 import com.settleup.repository.ParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class SettlementService {
 
     private final SettlementRepository settlementRepository;
     private final ExpenseRepository expenseRepository;
+    private final ExpenseSplitRepository expenseSplitRepository;
     private final ParticipantRepository participantRepository;
 
     /**
@@ -135,13 +137,23 @@ public class SettlementService {
             throw new ResourceNotFoundException("Settlement", "id", id);
         }
 
-        // 외래 키 제약 조건 순서대로 삭제: expenses -> participants -> settlement
+        // 외래 키 제약 조건 순서대로 삭제
+        // 1. expense_splits 삭제 (expenses를 참조)
+        log.info("Deleting related expense splits for settlement: id={}", id);
+        var expenses = expenseRepository.findBySettlementIdOrderByExpenseDateDesc(id);
+        for (var expense : expenses) {
+            expenseSplitRepository.deleteByExpenseId(expense.getId());
+        }
+
+        // 2. expenses 삭제 (settlement을 참조)
         log.info("Deleting related expenses for settlement: id={}", id);
         expenseRepository.deleteBySettlementId(id);
 
+        // 3. participants 삭제 (settlement을 참조)
         log.info("Deleting related participants for settlement: id={}", id);
         participantRepository.deleteBySettlementId(id);
 
+        // 4. settlement 삭제
         settlementRepository.deleteById(id);
         log.info("Settlement deleted successfully: id={}", id);
     }
