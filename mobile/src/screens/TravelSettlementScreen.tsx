@@ -17,6 +17,7 @@ import ExpenseItem from '../components/ExpenseItem';
 import AddParticipantModal from '../components/AddParticipantModal';
 import AddExpenseModal from '../components/AddExpenseModal';
 import RemainderHandlingModal from '../components/RemainderHandlingModal';
+import ParticipantBalanceSummary from '../components/ParticipantBalanceSummary';
 import {
   getSettlement,
   getParticipants,
@@ -307,6 +308,15 @@ export default function TravelSettlementScreen() {
             <Text style={styles.statValue}>{stats.expenseCount}건</Text>
           </View>
         </View>
+
+        {/* 참가자별 잔액 요약 */}
+        {expenses.length > 0 && participants.length > 0 && (
+          <ParticipantBalanceSummary
+            participants={participants}
+            expenses={expenses}
+            currency={settlement.currency}
+          />
+        )}
 
         {/* 참가자 섹션 */}
         <View style={styles.section}>
