@@ -4,8 +4,11 @@ import com.settleup.domain.settlement.Settlement;
 import com.settleup.domain.settlement.SettlementStatus;
 import com.settleup.dto.SettlementCreateRequest;
 import com.settleup.dto.SettlementResponse;
+import com.settleup.dto.SettlementUpdateRequest;
 import com.settleup.exception.ResourceNotFoundException;
 import com.settleup.repository.SettlementRepository;
+import com.settleup.repository.ExpenseRepository;
+import com.settleup.repository.ParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,8 @@ import java.util.stream.Collectors;
 public class SettlementService {
 
     private final SettlementRepository settlementRepository;
+    private final ExpenseRepository expenseRepository;
+    private final ParticipantRepository participantRepository;
 
     /**
      * 정산 생성
@@ -81,6 +86,45 @@ public class SettlementService {
     }
 
     /**
+     * 정산 업데이트
+     */
+    @Transactional
+    public SettlementResponse updateSettlement(UUID id, SettlementUpdateRequest request) {
+        log.info("Updating settlement: id={}", id);
+
+        Settlement settlement = settlementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", id));
+
+        // 제공된 필드만 업데이트
+        if (request.getTitle() != null) {
+            settlement.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            settlement.setDescription(request.getDescription());
+        }
+        if (request.getStartDate() != null) {
+            settlement.setStartDate(request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            settlement.setEndDate(request.getEndDate());
+        }
+        if (request.getCurrency() != null) {
+            settlement.setCurrency(request.getCurrency());
+        }
+        if (request.getStatus() != null) {
+            settlement.setStatus(request.getStatus());
+        }
+
+        // 날짜 검증
+        settlement.validateDates();
+
+        Settlement updated = settlementRepository.save(settlement);
+        log.info("Settlement updated successfully: id={}", updated.getId());
+
+        return SettlementResponse.from(updated);
+    }
+
+    /**
      * 정산 삭제
      */
     @Transactional
@@ -90,6 +134,13 @@ public class SettlementService {
         if (!settlementRepository.existsById(id)) {
             throw new ResourceNotFoundException("Settlement", "id", id);
         }
+
+        // 외래 키 제약 조건 순서대로 삭제: expenses -> participants -> settlement
+        log.info("Deleting related expenses for settlement: id={}", id);
+        expenseRepository.deleteBySettlementId(id);
+
+        log.info("Deleting related participants for settlement: id={}", id);
+        participantRepository.deleteBySettlementId(id);
 
         settlementRepository.deleteById(id);
         log.info("Settlement deleted successfully: id={}", id);

@@ -49,4 +49,9 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * 정산의 활성 참가자 수 조회
      */
     long countBySettlementIdAndIsActive(UUID settlementId, Boolean isActive);
+
+    /**
+     * 정산 삭제 시 관련 참가자도 삭제 (Cascade)
+     */
+    void deleteBySettlementId(UUID settlementId);
 }

@@ -5,6 +5,7 @@ import com.settleup.dto.ParticipantDto.ParticipantResponse;
 import com.settleup.dto.SettlementCreateRequest;
 import com.settleup.dto.SettlementResponse;
 import com.settleup.dto.SettlementResultDto.SettlementResultResponse;
+import com.settleup.dto.SettlementUpdateRequest;
 import com.settleup.exception.ErrorResponse;
 import com.settleup.service.ParticipantService;
 import com.settleup.service.SettlementService;
@@ -132,6 +133,48 @@ public class SettlementController {
         log.info("GET /settlements/{} - Getting settlement", id);
 
         SettlementResponse response = settlementService.getSettlement(id);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 정산 업데이트
+     * PUT /api/v1/settlements/{id}
+     */
+    @Operation(
+            summary = "정산 업데이트",
+            description = "ID로 특정 정산의 정보를 업데이트합니다. 제공된 필드만 업데이트됩니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "업데이트 성공",
+                    content = @Content(schema = @Schema(implementation = SettlementResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (유효성 검증 실패)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "정산을 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<SettlementResponse> updateSettlement(
+            @Parameter(description = "정산 ID", required = true)
+            @PathVariable UUID id,
+            @Valid @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "정산 업데이트 요청 정보",
+                    required = true
+            )
+            SettlementUpdateRequest request) {
+        log.info("PUT /settlements/{} - Updating settlement", id);
+
+        SettlementResponse response = settlementService.updateSettlement(id, request);
 
         return ResponseEntity.ok(response);
     }

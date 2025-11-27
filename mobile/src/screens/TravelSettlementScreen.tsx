@@ -18,6 +18,7 @@ import AddParticipantModal from '../components/AddParticipantModal';
 import AddExpenseModal from '../components/AddExpenseModal';
 import RemainderHandlingModal from '../components/RemainderHandlingModal';
 import ParticipantBalanceSummary from '../components/ParticipantBalanceSummary';
+import EditSettlementModal from '../components/EditSettlementModal';
 import {
   getSettlement,
   getParticipants,
@@ -27,9 +28,12 @@ import {
   deleteParticipant,
   addParticipant,
   addExpense,
+  updateSettlement,
+  deleteSettlement,
 } from '../services/api/settlementService';
 import { AddParticipantRequest } from '../models/Participant';
 import { CreateExpenseRequest } from '../models/Expense';
+import { UpdateSettlementRequest } from '../models/Settlement';
 
 /**
  * TravelSettlementScreen
@@ -50,6 +54,7 @@ export default function TravelSettlementScreen() {
   const [addParticipantModalVisible, setAddParticipantModalVisible] = useState(false);
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
   const [remainderModalVisible, setRemainderModalVisible] = useState(false);
+  const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
   const [remainder, setRemainder] = useState(0);
 
   /**
@@ -152,6 +157,49 @@ export default function TravelSettlementScreen() {
   const handleAddExpense = async (data: CreateExpenseRequest) => {
     await addExpense(settlementId, data);
     await loadData();
+  };
+
+  /**
+   * 정산 정보 수정
+   */
+  const handleUpdateSettlement = async (data: UpdateSettlementRequest) => {
+    try {
+      await updateSettlement(settlementId, data);
+      await loadData();
+    } catch (error) {
+      console.error('정산 수정 실패:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * 정산 삭제
+   */
+  const handleDeleteSettlement = () => {
+    Alert.alert(
+      '정산 삭제',
+      '정산을 삭제하시겠습니까? 관련된 모든 데이터가 삭제됩니다.',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSettlement(settlementId);
+              Alert.alert('완료', '정산을 삭제했습니다.');
+              navigation.goBack();
+            } catch (error) {
+              console.error('정산 삭제 실패:', error);
+              Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   /**
@@ -280,6 +328,22 @@ export default function TravelSettlementScreen() {
               {settlement.endDate && ` ~ ${new Date(settlement.endDate).toLocaleDateString('ko-KR')}`}
             </Text>
           )}
+
+          {/* 수정/삭제 버튼 */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => setEditSettlementModalVisible(true)}
+            >
+              <Text style={styles.editButtonText}>수정</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDeleteSettlement}
+            >
+              <Text style={styles.deleteButtonText}>삭제</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 통계 카드 */}
@@ -398,6 +462,16 @@ export default function TravelSettlementScreen() {
         onClose={() => setRemainderModalVisible(false)}
         onConfirm={handleRemainderConfirm}
       />
+
+      {/* 정산 수정 모달 */}
+      {settlement && (
+        <EditSettlementModal
+          visible={editSettlementModalVisible}
+          settlement={settlement}
+          onClose={() => setEditSettlementModalVisible(false)}
+          onSubmit={handleUpdateSettlement}
+        />
+      )}
     </View>
   );
 }
@@ -457,6 +531,37 @@ const styles = StyleSheet.create({
   dateRange: {
     fontSize: 13,
     color: '#9E9E9E',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  editButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#2196F3',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  deleteButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F44336',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   statsContainer: {
     flexDirection: 'row',

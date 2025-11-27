@@ -5,6 +5,7 @@ import com.settleup.domain.settlement.Settlement;
 import com.settleup.domain.settlement.SettlementStatus;
 import com.settleup.domain.settlement.SettlementType;
 import com.settleup.dto.SettlementCreateRequest;
+import com.settleup.dto.SettlementUpdateRequest;
 import com.settleup.repository.SettlementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -158,6 +159,101 @@ class SettlementControllerTest {
         mockMvc.perform(get("/settlements/{id}", nonExistentId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /settlements/{id} - 정산 업데이트 성공")
+    void updateSettlement_Success() throws Exception {
+        // given
+        SettlementUpdateRequest request = SettlementUpdateRequest.builder()
+                .title("제주도 여행 (수정)")
+                .description("3박 4일 여행으로 변경")
+                .startDate(LocalDate.of(2025, 1, 15))
+                .endDate(LocalDate.of(2025, 1, 18))
+                .status(SettlementStatus.COMPLETED)
+                .currency("USD")
+                .build();
+
+        // when & then
+        mockMvc.perform(put("/settlements/{id}", settlement.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(settlement.getId().toString()))
+                .andExpect(jsonPath("$.title").value("제주도 여행 (수정)"))
+                .andExpect(jsonPath("$.description").value("3박 4일 여행으로 변경"))
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.currency").value("USD"))
+                .andExpect(jsonPath("$.startDate").value("2025-01-15"))
+                .andExpect(jsonPath("$.endDate").value("2025-01-18"));
+    }
+
+    @Test
+    @DisplayName("PUT /settlements/{id} - 부분 업데이트 성공 (제목만)")
+    void updateSettlement_PartialUpdate_Success() throws Exception {
+        // given
+        SettlementUpdateRequest request = SettlementUpdateRequest.builder()
+                .title("새로운 제목")
+                .build();
+
+        // when & then
+        mockMvc.perform(put("/settlements/{id}", settlement.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(settlement.getId().toString()))
+                .andExpect(jsonPath("$.title").value("새로운 제목"))
+                .andExpect(jsonPath("$.description").value("2박 3일 여행")) // 기존 값 유지
+                .andExpect(jsonPath("$.status").value("ACTIVE")); // 기존 값 유지
+    }
+
+    @Test
+    @DisplayName("PUT /settlements/{id} - 상태만 업데이트 성공")
+    void updateSettlement_StatusOnly_Success() throws Exception {
+        // given
+        SettlementUpdateRequest request = SettlementUpdateRequest.builder()
+                .status(SettlementStatus.ARCHIVED)
+                .build();
+
+        // when & then
+        mockMvc.perform(put("/settlements/{id}", settlement.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(settlement.getId().toString()))
+                .andExpect(jsonPath("$.title").value("제주도 여행")) // 기존 값 유지
+                .andExpect(jsonPath("$.status").value("ARCHIVED"));
+    }
+
+    @Test
+    @DisplayName("PUT /settlements/{id} - 존재하지 않는 정산 업데이트 (404)")
+    void updateSettlement_NotFound() throws Exception {
+        // given
+        UUID nonExistentId = UUID.randomUUID();
+        SettlementUpdateRequest request = SettlementUpdateRequest.builder()
+                .title("새 제목")
+                .build();
+
+        // when & then
+        mockMvc.perform(put("/settlements/{id}", nonExistentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /settlements/{id} - 잘못된 통화 코드 (400)")
+    void updateSettlement_InvalidCurrency_BadRequest() throws Exception {
+        // given
+        SettlementUpdateRequest request = SettlementUpdateRequest.builder()
+                .currency("INVALID") // 3글자 초과
+                .build();
+
+        // when & then
+        mockMvc.perform(put("/settlements/{id}", settlement.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
