@@ -4,9 +4,11 @@ import com.settleup.dto.ParticipantDto.ParticipantRequest;
 import com.settleup.dto.ParticipantDto.ParticipantResponse;
 import com.settleup.dto.SettlementCreateRequest;
 import com.settleup.dto.SettlementResponse;
+import com.settleup.dto.SettlementResultDto.SettlementResultResponse;
 import com.settleup.exception.ErrorResponse;
 import com.settleup.service.ParticipantService;
 import com.settleup.service.SettlementService;
+import com.settleup.service.SettlementCalculationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -37,6 +39,7 @@ public class SettlementController {
 
     private final SettlementService settlementService;
     private final ParticipantService participantService;
+    private final SettlementCalculationService settlementCalculationService;
 
     /**
      * 정산 생성
@@ -235,6 +238,43 @@ public class SettlementController {
         List<ParticipantResponse> participants = participantService.getParticipantsBySettlement(id);
 
         return ResponseEntity.ok(participants);
+    }
+
+    /**
+     * 정산 계산
+     * POST /api/v1/settlements/{id}/calculate
+     */
+    @Operation(
+            summary = "정산 계산",
+            description = "정산의 모든 지출을 기반으로 참가자 간 정산 결과를 계산합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "계산 성공",
+                    content = @Content(schema = @Schema(implementation = SettlementResultResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (참가자 또는 지출 없음)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "정산을 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @PostMapping("/{id}/calculate")
+    public ResponseEntity<SettlementResultResponse> calculateSettlement(
+            @Parameter(description = "정산 ID", required = true)
+            @PathVariable UUID id) {
+
+        log.info("POST /settlements/{}/calculate - Calculating settlement", id);
+
+        SettlementResultResponse response = settlementCalculationService.calculateSettlement(id);
+
+        return ResponseEntity.ok(response);
     }
 
     /**
