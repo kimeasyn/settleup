@@ -233,13 +233,13 @@ export default function TravelSettlementScreen() {
   /**
    * 나머지 처리 확인 핸들러
    */
-  const handleRemainderConfirm = (payerId: string) => {
+  const handleRemainderConfirm = (payerId: string, amount: number) => {
     setRemainderModalVisible(false);
     // 나머지 처리 정보를 포함하여 결과 화면으로 이동
     navigation.navigate('SettlementResult', {
       settlementId,
       remainderPayerId: payerId,
-      remainderAmount: remainder,
+      remainderAmount: amount,
     });
   };
 
@@ -382,6 +382,7 @@ export default function TravelSettlementScreen() {
       <RemainderHandlingModal
         visible={remainderModalVisible}
         remainder={remainder}
+        totalExpense={expenses.reduce((sum, exp) => sum + exp.amount, 0)}
         participants={participants}
         currency={settlement?.currency || 'KRW'}
         onClose={() => setRemainderModalVisible(false)}

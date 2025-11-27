@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,18 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  TextInput,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { Participant } from '../models/Participant';
 
 interface RemainderHandlingModalProps {
   visible: boolean;
   remainder: number;
+  totalExpense: number;
   participants: Participant[];
   currency: string;
   onClose: () => void;
-  onConfirm: (payerId: string) => void;
+  onConfirm: (payerId: string, amount: number) => void;
 }
 
 /**
@@ -27,29 +28,70 @@ interface RemainderHandlingModalProps {
 export default function RemainderHandlingModal({
   visible,
   remainder,
+  totalExpense,
   participants,
   currency,
   onClose,
   onConfirm,
 }: RemainderHandlingModalProps) {
   const [selectedPayerId, setSelectedPayerId] = useState<string>('');
+  const [additionalAmount, setAdditionalAmount] = useState<string>('');
 
-  // 활성 참가자만 필터링
-  const activeParticipants = participants.filter(p => p.isActive);
+  // 활성 참가자만 필터링 (useMemo로 최적화)
+  const activeParticipants = useMemo(() =>
+    participants.filter(p => p.isActive),
+    [participants]
+  );
 
   useEffect(() => {
-    // 모달이 열릴 때 첫 번째 참가자를 기본 선택
+    // 모달이 열릴 때 초기화
     if (visible && activeParticipants.length > 0) {
       setSelectedPayerId(activeParticipants[0].id);
+      setAdditionalAmount(remainder.toString());
     }
-  }, [visible, activeParticipants]);
+  }, [visible, remainder, activeParticipants]);
+
+  // 검증 로직
+  const getValidationError = (): string | null => {
+    const amount = parseInt(additionalAmount, 10);
+
+    if (!additionalAmount || isNaN(amount)) {
+      return '금액을 입력해주세요';
+    }
+
+    if (amount <= 0) {
+      return '0보다 큰 금액을 입력해주세요';
+    }
+
+    if (amount > totalExpense) {
+      return '총 지출 금액을 초과할 수 없습니다';
+    }
+
+    if ((totalExpense - amount) % activeParticipants.length !== 0) {
+      return '입력한 금액으로는 정산이 정확히 나누어떨어지지 않습니다';
+    }
+
+    return null;
+  };
+
+  const isValid = (): boolean => {
+    return getValidationError() === null;
+  };
 
   const handleConfirm = () => {
     if (!selectedPayerId) {
       Alert.alert('오류', '추가 지불자를 선택해주세요.');
       return;
     }
-    onConfirm(selectedPayerId);
+
+    const error = getValidationError();
+    if (error) {
+      Alert.alert('오류', error);
+      return;
+    }
+
+    const amount = parseInt(additionalAmount, 10);
+    onConfirm(selectedPayerId, amount);
   };
 
   const formatAmount = (amount: number): string => {
@@ -85,37 +127,56 @@ export default function RemainderHandlingModal({
             {/* 참가자 선택 */}
             <View style={styles.pickerSection}>
               <Text style={styles.label}>추가 지불자</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedPayerId}
-                  onValueChange={(value) => setSelectedPayerId(value)}
-                  style={styles.picker}
-                >
-                  {activeParticipants.map((participant) => (
-                    <Picker.Item
-                      key={participant.id}
-                      label={participant.name}
-                      value={participant.id}
-                    />
-                  ))}
-                </Picker>
+              <View style={styles.participantButtons}>
+                {activeParticipants.map((participant) => (
+                  <TouchableOpacity
+                    key={participant.id}
+                    style={[
+                      styles.participantButton,
+                      selectedPayerId === participant.id && styles.participantButtonSelected
+                    ]}
+                    onPress={() => setSelectedPayerId(participant.id)}
+                  >
+                    <Text style={[
+                      styles.participantButtonText,
+                      selectedPayerId === participant.id && styles.participantButtonTextSelected
+                    ]}>
+                      {participant.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
-            {/* 금액 확인 */}
+            {/* 금액 입력 */}
             <View style={styles.amountSection}>
-              <Text style={styles.amountLabel}>추가 지불 금액</Text>
-              <Text style={styles.amountValue}>
-                {formatAmount(remainder)} {currency}
+              <Text style={styles.label}>추가 지불 금액</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={additionalAmount}
+                  onChangeText={setAdditionalAmount}
+                  keyboardType="number-pad"
+                  placeholder="금액 입력"
+                  placeholderTextColor="#BDBDBD"
+                />
+                <Text style={styles.currencyText}>{currency}</Text>
+              </View>
+              <Text style={styles.hintText}>
+                권장: {formatAmount(remainder)} {currency}
               </Text>
             </View>
 
             {/* 검증 결과 */}
-            <View style={styles.validationSection}>
-              <Text style={styles.validationIcon}>✅</Text>
+            <View style={[
+              styles.validationSection,
+              isValid() ? styles.validationSuccess : styles.validationError
+            ]}>
+              <Text style={styles.validationIcon}>{isValid() ? '✅' : '⚠️'}</Text>
               <Text style={styles.validationText}>
-                선택한 참가자가 추가 금액을 지불하면{'\n'}
-                정산이 정확히 완료됩니다.
+                {isValid()
+                  ? '정산이 정확히 나누어떨어집니다!'
+                  : '입력한 금액으로는 정산이 정확히 나누어떨어지지 않습니다.'}
               </Text>
             </View>
 
@@ -128,10 +189,18 @@ export default function RemainderHandlingModal({
                 <Text style={styles.cancelButtonText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.confirmButton]}
+                style={[
+                  styles.button,
+                  styles.confirmButton,
+                  !isValid() && styles.confirmButtonDisabled
+                ]}
                 onPress={handleConfirm}
+                disabled={!isValid()}
               >
-                <Text style={styles.confirmButtonText}>확인</Text>
+                <Text style={[
+                  styles.confirmButtonText,
+                  !isValid() && styles.confirmButtonTextDisabled
+                ]}>확인</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -209,40 +278,78 @@ const styles = StyleSheet.create({
     color: '#424242',
     marginBottom: 8,
   },
-  pickerContainer: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    overflow: 'hidden',
+  participantButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  picker: {
-    height: 50,
+  participantButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+  },
+  participantButtonSelected: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#2196F3',
+  },
+  participantButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#616161',
+  },
+  participantButtonTextSelected: {
+    color: '#2196F3',
+    fontWeight: '600',
   },
   amountSection: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-    padding: 16,
     marginBottom: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  amountLabel: {
-    fontSize: 13,
-    color: '#1976D2',
-    marginBottom: 4,
+  input: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#212121',
   },
-  amountValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0D47A1',
+  currencyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#616161',
+    marginLeft: 8,
+  },
+  hintText: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    marginTop: 4,
+    marginLeft: 4,
   },
   validationSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
+    borderWidth: 2,
+  },
+  validationSuccess: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4CAF50',
+  },
+  validationError: {
+    backgroundColor: '#FFF9E6',
+    borderColor: '#FF9800',
   },
   validationIcon: {
     fontSize: 24,
@@ -281,5 +388,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#BDBDBD',
+    opacity: 0.6,
+  },
+  confirmButtonTextDisabled: {
+    color: '#9E9E9E',
   },
 });

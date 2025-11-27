@@ -225,14 +225,16 @@ class SettlementCalculationServiceTest {
 
         // then
         // 10000 / 3 = 3333.33... → RoundingMode.DOWN으로 3333.33
+        // 나머지 0.01은 첫 번째 참가자(A)에게 추가
         assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("10000"));
 
         ParticipantSummary pASummary = result.getParticipants().stream()
                 .filter(s -> s.getParticipantName().equals("A"))
                 .findFirst()
                 .orElseThrow();
-        assertThat(pASummary.getShouldPay()).isEqualByComparingTo(new BigDecimal("3333.33"));
-        assertThat(pASummary.getBalance()).isEqualByComparingTo(new BigDecimal("6666.67")); // 10000 - 3333.33
+        // 첫 번째 참가자는 나머지 금액 포함: 3333.33 + 0.01 = 3333.34
+        assertThat(pASummary.getShouldPay()).isEqualByComparingTo(new BigDecimal("3333.34"));
+        assertThat(pASummary.getBalance()).isEqualByComparingTo(new BigDecimal("6666.66")); // 10000 - 3333.34
     }
 
     @Test

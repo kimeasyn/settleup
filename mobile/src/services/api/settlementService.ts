@@ -19,6 +19,7 @@ import {
   CreateExpenseRequest,
   UpdateExpenseRequest,
 } from '../../models/Expense';
+import { SettlementResult } from '../../models/SettlementResult';
 
 /**
  * 정산 생성
@@ -268,6 +269,39 @@ export const deleteExpense = async (
 };
 
 /**
+ * 정산 계산
+ * @param settlementId 정산 ID
+ * @param remainderPayerId 나머지 지불 참가자 ID (선택)
+ * @param remainderAmount 추가 부담 금액 (선택)
+ * @returns 정산 결과
+ */
+export const calculateSettlement = async (
+  settlementId: string,
+  remainderPayerId?: string,
+  remainderAmount?: number
+): Promise<SettlementResult> => {
+  try {
+    const params: any = {};
+    if (remainderPayerId) {
+      params.remainderPayerId = remainderPayerId;
+    }
+    if (remainderAmount !== undefined && remainderAmount !== null) {
+      params.remainderAmount = remainderAmount;
+    }
+
+    const response = await apiClient.post<SettlementResult>(
+      `/settlements/${settlementId}/calculate`,
+      null,
+      { params }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[calculateSettlement] Error:', error);
+    throw error;
+  }
+};
+
+/**
  * SettlementService 객체 내보내기 (선택적 사용)
  */
 export const SettlementService = {
@@ -284,6 +318,7 @@ export const SettlementService = {
   getExpenses,
   updateExpense,
   deleteExpense,
+  calculateSettlement,
 };
 
 export default SettlementService;

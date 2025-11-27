@@ -38,7 +38,15 @@ public class SettlementCalculationService {
      * 정산 계산
      */
     public SettlementResultResponse calculateSettlement(UUID settlementId) {
-        log.info("Calculating settlement: settlementId={}", settlementId);
+        return calculateSettlement(settlementId, null, null);
+    }
+
+    /**
+     * 정산 계산 (나머지 처리자 지정 가능)
+     */
+    public SettlementResultResponse calculateSettlement(UUID settlementId, UUID remainderPayerId, BigDecimal remainderAmount) {
+        log.info("Calculating settlement: settlementId={}, remainderPayerId={}, remainderAmount={}",
+                settlementId, remainderPayerId, remainderAmount);
 
         // 1. 정산 조회
         Settlement settlement = settlementRepository.findById(settlementId)
@@ -66,7 +74,7 @@ public class SettlementCalculationService {
 
         // 5. 참가자별 잔액 계산
         List<ParticipantSummary> participantSummaries =
-                calculateParticipantBalances(participants, expenses, totalAmount);
+                calculateParticipantBalances(participants, expenses, totalAmount, remainderPayerId, remainderAmount);
 
         // 6. 최소 송금 경로 계산
         List<Transfer> transfers = calculateMinimumTransfers(participantSummaries);
@@ -86,13 +94,40 @@ public class SettlementCalculationService {
     private List<ParticipantSummary> calculateParticipantBalances(
             List<Participant> participants,
             List<Expense> expenses,
-            BigDecimal totalAmount) {
+            BigDecimal totalAmount,
+            UUID remainderPayerId,
+            BigDecimal remainderAmount) {
 
         int participantCount = participants.size();
 
-        // 인당 분담 금액 (소수점 2자리까지)
-        BigDecimal perPersonAmount = totalAmount
-                .divide(BigDecimal.valueOf(participantCount), 2, RoundingMode.DOWN);
+        BigDecimal perPersonAmount;
+        BigDecimal additionalAmountForPayer = BigDecimal.ZERO;
+
+        if (remainderAmount != null && remainderAmount.compareTo(BigDecimal.ZERO) > 0) {
+            // remainderAmount가 제공된 경우: 새로운 로직
+            // 남은 총액 = 총액 - 추가 부담 금액
+            BigDecimal remainingTotal = totalAmount.subtract(remainderAmount);
+
+            // 1인당 분담 = 남은 총액 / 참가자 수 (정수 나눗셈)
+            // BigDecimal로 정수 나눗셈을 하려면 divide with RoundingMode.DOWN
+            perPersonAmount = remainingTotal
+                    .divide(BigDecimal.valueOf(participantCount), 0, RoundingMode.DOWN);
+
+            // 추가 부담 금액 저장
+            additionalAmountForPayer = remainderAmount;
+        } else {
+            // remainderAmount가 없는 경우: 기존 로직
+            // 인당 기본 분담 금액 (소수점 버림)
+            perPersonAmount = totalAmount
+                    .divide(BigDecimal.valueOf(participantCount), 2, RoundingMode.DOWN);
+
+            // 나머지 금액 계산
+            BigDecimal totalDistributed = perPersonAmount.multiply(BigDecimal.valueOf(participantCount));
+            BigDecimal remainder = totalAmount.subtract(totalDistributed);
+
+            // 첫 번째 참가자에게 나머지 추가
+            additionalAmountForPayer = remainder;
+        }
 
         // 참가자별 총 지출 계산
         Map<UUID, BigDecimal> totalPaidMap = new HashMap<>();
@@ -109,20 +144,30 @@ public class SettlementCalculationService {
         }
 
         // 참가자별 요약 생성
-        return participants.stream()
-                .map(p -> {
-                    BigDecimal totalPaid = totalPaidMap.get(p.getId());
-                    BigDecimal balance = totalPaid.subtract(perPersonAmount);
+        List<ParticipantSummary> summaries = new ArrayList<>();
+        for (Participant p : participants) {
+            BigDecimal totalPaid = totalPaidMap.get(p.getId());
 
-                    return ParticipantSummary.builder()
-                            .participantId(p.getId())
-                            .participantName(p.getName())
-                            .totalPaid(totalPaid)
-                            .shouldPay(perPersonAmount)
-                            .balance(balance)
-                            .build();
-                })
-                .collect(Collectors.toList());
+            // 지정된 참가자 또는 첫 번째 참가자에게 추가 금액 부담
+            boolean shouldPayAdditional = (remainderPayerId != null && p.getId().equals(remainderPayerId))
+                    || (remainderPayerId == null && summaries.isEmpty());
+
+            BigDecimal shouldPay = shouldPayAdditional
+                    ? perPersonAmount.add(additionalAmountForPayer)
+                    : perPersonAmount;
+
+            BigDecimal balance = totalPaid.subtract(shouldPay);
+
+            summaries.add(ParticipantSummary.builder()
+                    .participantId(p.getId())
+                    .participantName(p.getName())
+                    .totalPaid(totalPaid)
+                    .shouldPay(shouldPay)
+                    .balance(balance)
+                    .build());
+        }
+
+        return summaries;
     }
 
     /**

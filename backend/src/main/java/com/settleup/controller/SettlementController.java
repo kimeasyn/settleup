@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -268,11 +269,16 @@ public class SettlementController {
     @PostMapping("/{id}/calculate")
     public ResponseEntity<SettlementResultResponse> calculateSettlement(
             @Parameter(description = "정산 ID", required = true)
-            @PathVariable UUID id) {
+            @PathVariable UUID id,
+            @Parameter(description = "나머지 지불 참가자 ID (선택)", required = false)
+            @RequestParam(required = false) UUID remainderPayerId,
+            @Parameter(description = "추가 부담 금액 (선택)", required = false)
+            @RequestParam(required = false) BigDecimal remainderAmount) {
 
-        log.info("POST /settlements/{}/calculate - Calculating settlement", id);
+        log.info("POST /settlements/{}/calculate - Calculating settlement (remainderPayerId: {}, remainderAmount: {})",
+                id, remainderPayerId, remainderAmount);
 
-        SettlementResultResponse response = settlementCalculationService.calculateSettlement(id);
+        SettlementResultResponse response = settlementCalculationService.calculateSettlement(id, remainderPayerId, remainderAmount);
 
         return ResponseEntity.ok(response);
     }
