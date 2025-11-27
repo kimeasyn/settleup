@@ -1,11 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, Text, StyleSheet } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import TravelSettlementScreen from '../screens/TravelSettlementScreen';
 import CreateSettlementScreen from '../screens/CreateSettlementScreen';
 import SettlementResultScreen from '../screens/SettlementResultScreen';
+import SettlementHistoryScreen from '../screens/SettlementHistoryScreen';
 
 /**
  * Navigation 구조
@@ -22,16 +22,6 @@ export type RootStackParamList = {
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator<RootStackParamList>();
-
-/**
- * 임시 히스토리 화면 (Phase 4에서 구현)
- */
-const HistoryScreen = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>정산 히스토리</Text>
-    <Text style={styles.subtext}>과거 정산 조회</Text>
-  </View>
-);
 
 /**
  * Home Stack Navigator
@@ -84,11 +74,21 @@ const HomeStack = () => (
  * History Stack Navigator
  */
 const HistoryStack = () => (
-  <Stack.Navigator>
+  <Stack.Navigator
+    screenOptions={{
+      headerStyle: {
+        backgroundColor: '#2196F3',
+      },
+      headerTintColor: '#FFFFFF',
+      headerTitleStyle: {
+        fontWeight: '600',
+      },
+    }}
+  >
     <Stack.Screen
       name="HistoryMain"
-      component={HistoryScreen}
-      options={{ title: '히스토리' }}
+      component={SettlementHistoryScreen}
+      options={{ title: '정산 히스토리' }}
     />
   </Stack.Navigator>
 );
@@ -124,22 +124,3 @@ export const AppNavigator = () => {
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F2F2F7',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  subtext: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-});
