@@ -141,29 +141,31 @@ export default function ExpenseItem({
       </View>
 
       {/* 확장된 상세 정보 */}
-      {expanded && expense.splits && expense.splits.length > 0 && (
+      {expanded && (
         <View style={styles.expandedSection}>
           <View style={styles.divider} />
 
           {/* 분담 내역 */}
-          <View style={styles.splitsSection}>
-            <Text style={styles.splitsTitle}>분담 내역</Text>
-            {expense.splits.map((split) => (
-              <View key={split.id} style={styles.splitItem}>
-                <Text style={styles.splitName}>{split.participantName}</Text>
-                <View style={styles.splitAmount}>
-                  <Text style={styles.splitAmountText}>
-                    {formatAmount(split.share)} {currency}
-                  </Text>
-                  {split.sharePercentage !== undefined && (
-                    <Text style={styles.splitPercentage}>
-                      ({split.sharePercentage.toFixed(1)}%)
+          {expense.splits && expense.splits.length > 0 && (
+            <View style={styles.splitsSection}>
+              <Text style={styles.splitsTitle}>분담 내역</Text>
+              {expense.splits.map((split) => (
+                <View key={split.id} style={styles.splitItem}>
+                  <Text style={styles.splitName}>{split.participantName}</Text>
+                  <View style={styles.splitAmount}>
+                    <Text style={styles.splitAmountText}>
+                      {formatAmount(split.share)} {currency}
                     </Text>
-                  )}
+                    {split.sharePercentage !== undefined && (
+                      <Text style={styles.splitPercentage}>
+                        ({split.sharePercentage.toFixed(1)}%)
+                      </Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
 
           {/* 액션 버튼 */}
           {(onEdit || onDelete) && (

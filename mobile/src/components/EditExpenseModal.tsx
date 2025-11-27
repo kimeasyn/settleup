@@ -11,6 +11,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { ExpenseWithDetails, UpdateExpenseRequest } from '../models/Expense';
 import { Participant } from '../models/Participant';
 
@@ -35,7 +36,8 @@ export default function EditExpenseModal({
 }: EditExpenseModalProps) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [expenseDate, setExpenseDate] = useState('');
+  const [expenseDate, setExpenseDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [category, setCategory] = useState('');
   const [selectedPayerId, setSelectedPayerId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -47,7 +49,8 @@ export default function EditExpenseModal({
     if (visible && expense) {
       setDescription(expense.description);
       setAmount(expense.amount.toString());
-      setExpenseDate(expense.expenseDate);
+      // expense.expenseDate는 "YYYY-MM-DD" 형식의 문자열
+      setExpenseDate(new Date(expense.expenseDate));
       setCategory(expense.category || '');
       setSelectedPayerId(expense.payerId);
     }
@@ -61,12 +64,35 @@ export default function EditExpenseModal({
   };
 
   /**
-   * 날짜 포맷 검증 (YYYY-MM-DD)
+   * Date 객체를 YYYY-MM-DD 문자열로 변환
    */
-  const isValidDateFormat = (dateString: string): boolean => {
-    if (!dateString) return false;
-    const regex = /^\d{4}-\d{2}-\d{2}$/;
-    return regex.test(dateString);
+  const formatDateToString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  /**
+   * 날짜를 한국어로 보기 좋게 포맷
+   */
+  const formatDateDisplay = (date: Date): string => {
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekday = weekdays[date.getDay()];
+    return `${year}년 ${month}월 ${day}일 (${weekday})`;
+  };
+
+  /**
+   * DatePicker 날짜 변경 핸들러
+   */
+  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios'); // iOS는 모달 형태로 계속 표시
+    if (selectedDate) {
+      setExpenseDate(selectedDate);
+    }
   };
 
   /**
@@ -100,11 +126,6 @@ export default function EditExpenseModal({
       return;
     }
 
-    if (!isValidDateFormat(expenseDate)) {
-      Alert.alert('입력 오류', '날짜 형식이 올바르지 않습니다. (YYYY-MM-DD)');
-      return;
-    }
-
     if (!selectedPayerId) {
       Alert.alert('입력 오류', '지불자를 선택해주세요.');
       return;
@@ -116,7 +137,7 @@ export default function EditExpenseModal({
       const data: UpdateExpenseRequest = {
         description: description.trim(),
         amount: amountNum,
-        expenseDate: expenseDate,
+        expenseDate: formatDateToString(expenseDate),
         payerId: selectedPayerId,
         category: category.trim() || undefined,
       };
@@ -190,17 +211,29 @@ export default function EditExpenseModal({
                 />
               </View>
 
-              {/* 날짜 입력 */}
+              {/* 날짜 선택 */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>날짜 * (YYYY-MM-DD)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="2024-01-01"
-                  value={expenseDate}
-                  onChangeText={setExpenseDate}
-                  placeholderTextColor="#9E9E9E"
-                />
+                <Text style={styles.label}>날짜 *</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.dateButtonText}>
+                    {formatDateDisplay(expenseDate)}
+                  </Text>
+                  <Text style={styles.dateButtonIcon}>📅</Text>
+                </TouchableOpacity>
               </View>
+
+              {/* DatePicker */}
+              {showDatePicker && (
+                <DateTimePicker
+                  value={expenseDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleDateChange}
+                />
+              )}
 
               {/* 지불자 선택 */}
               <View style={styles.inputGroup}>
@@ -432,5 +465,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  dateButtonText: {
+    fontSize: 15,
+    color: '#212121',
+  },
+  dateButtonIcon: {
+    fontSize: 20,
   },
 });
