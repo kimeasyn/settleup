@@ -1,13 +1,10 @@
 package com.settleup.controller;
 
-import com.settleup.dto.ParticipantDto.ParticipantRequest;
-import com.settleup.dto.ParticipantDto.ParticipantResponse;
 import com.settleup.dto.SettlementCreateRequest;
 import com.settleup.dto.SettlementResponse;
 import com.settleup.dto.SettlementResultDto.SettlementResultResponse;
 import com.settleup.dto.SettlementUpdateRequest;
 import com.settleup.exception.ErrorResponse;
-import com.settleup.service.ParticipantService;
 import com.settleup.service.SettlementService;
 import com.settleup.service.SettlementCalculationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,7 +37,6 @@ import java.util.UUID;
 public class SettlementController {
 
     private final SettlementService settlementService;
-    private final ParticipantService participantService;
     private final SettlementCalculationService settlementCalculationService;
 
     /**
@@ -207,81 +203,6 @@ public class SettlementController {
         settlementService.deleteSettlement(id);
 
         return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * 참가자 추가
-     * POST /api/v1/settlements/{id}/participants
-     */
-    @Operation(
-            summary = "참가자 추가",
-            description = "정산에 새로운 참가자를 추가합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "참가자 추가 성공",
-                    content = @Content(schema = @Schema(implementation = ParticipantResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "잘못된 요청 (이미 존재하는 이름 등)",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "정산을 찾을 수 없음",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-            )
-    })
-    @PostMapping("/{id}/participants")
-    public ResponseEntity<ParticipantResponse> addParticipant(
-            @Parameter(description = "정산 ID", required = true)
-            @PathVariable UUID id,
-            @Valid @RequestBody
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "참가자 정보",
-                    required = true
-            )
-            ParticipantRequest request) {
-
-        log.info("POST /settlements/{}/participants - Adding participant: {}",
-                id, request.getName());
-
-        ParticipantResponse response = participantService.addParticipant(id, request);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    /**
-     * 참가자 목록 조회
-     * GET /api/v1/settlements/{id}/participants
-     */
-    @Operation(
-            summary = "참가자 목록 조회",
-            description = "정산의 모든 참가자 목록을 조회합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "조회 성공"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "정산을 찾을 수 없음",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-            )
-    })
-    @GetMapping("/{id}/participants")
-    public ResponseEntity<List<ParticipantResponse>> getParticipants(
-            @Parameter(description = "정산 ID", required = true)
-            @PathVariable UUID id) {
-
-        log.info("GET /settlements/{}/participants - Getting participants", id);
-
-        List<ParticipantResponse> participants = participantService.getParticipantsBySettlement(id);
-
-        return ResponseEntity.ok(participants);
     }
 
     /**
