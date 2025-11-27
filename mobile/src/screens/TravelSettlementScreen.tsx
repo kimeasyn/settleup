@@ -16,6 +16,7 @@ import ParticipantList from '../components/ParticipantList';
 import ExpenseItem from '../components/ExpenseItem';
 import AddParticipantModal from '../components/AddParticipantModal';
 import AddExpenseModal from '../components/AddExpenseModal';
+import RemainderHandlingModal from '../components/RemainderHandlingModal';
 import {
   getSettlement,
   getParticipants,
@@ -47,6 +48,8 @@ export default function TravelSettlementScreen() {
   // 모달 상태
   const [addParticipantModalVisible, setAddParticipantModalVisible] = useState(false);
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
+  const [remainderModalVisible, setRemainderModalVisible] = useState(false);
+  const [remainder, setRemainder] = useState(0);
 
   /**
    * 데이터 로드
@@ -177,6 +180,69 @@ export default function TravelSettlementScreen() {
     return new Intl.NumberFormat('ko-KR').format(amount);
   };
 
+  /**
+   * 나머지 계산
+   */
+  const calculateRemainder = (): number => {
+    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const activeParticipants = participants.filter(p => p.isActive);
+
+    if (activeParticipants.length === 0) {
+      return 0;
+    }
+
+    // 1인당 금액 (소수점 버림)
+    const perPerson = Math.floor(totalExpense / activeParticipants.length);
+
+    // 나머지 = 총액 - (1인당 금액 * 참가자 수)
+    const remainder = totalExpense - (perPerson * activeParticipants.length);
+
+    return remainder;
+  };
+
+  /**
+   * 정산 결과 보기 핸들러
+   */
+  const handleViewSettlementResult = () => {
+    // 유효성 검사
+    const activeParticipants = participants.filter(p => p.isActive);
+
+    if (activeParticipants.length === 0) {
+      Alert.alert('오류', '활성 참가자가 없습니다.');
+      return;
+    }
+
+    if (expenses.length === 0) {
+      Alert.alert('오류', '지출 내역이 없습니다.');
+      return;
+    }
+
+    // 나머지 계산
+    const calculatedRemainder = calculateRemainder();
+
+    if (calculatedRemainder > 0) {
+      // 나머지가 있으면 모달 표시
+      setRemainder(calculatedRemainder);
+      setRemainderModalVisible(true);
+    } else {
+      // 나머지가 없으면 바로 결과 화면으로 이동
+      navigation.navigate('SettlementResult', { settlementId });
+    }
+  };
+
+  /**
+   * 나머지 처리 확인 핸들러
+   */
+  const handleRemainderConfirm = (payerId: string) => {
+    setRemainderModalVisible(false);
+    // 나머지 처리 정보를 포함하여 결과 화면으로 이동
+    navigation.navigate('SettlementResult', {
+      settlementId,
+      remainderPayerId: payerId,
+      remainderAmount: remainder,
+    });
+  };
+
   if (loading && !settlement) {
     return (
       <View style={styles.loadingContainer}>
@@ -291,7 +357,7 @@ export default function TravelSettlementScreen() {
         {/* 정산 결과 버튼 */}
         <TouchableOpacity
           style={styles.calculateButton}
-          onPress={() => navigation.navigate('SettlementResult', { settlementId })}
+          onPress={handleViewSettlementResult}
         >
           <Text style={styles.calculateButtonText}>정산 결과 보기</Text>
         </TouchableOpacity>
@@ -310,6 +376,16 @@ export default function TravelSettlementScreen() {
         participants={participants}
         onClose={() => setAddExpenseModalVisible(false)}
         onSubmit={handleAddExpense}
+      />
+
+      {/* 나머지 처리 모달 */}
+      <RemainderHandlingModal
+        visible={remainderModalVisible}
+        remainder={remainder}
+        participants={participants}
+        currency={settlement?.currency || 'KRW'}
+        onClose={() => setRemainderModalVisible(false)}
+        onConfirm={handleRemainderConfirm}
       />
     </View>
   );
