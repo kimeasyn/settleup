@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Settlement, SettlementStatus, SettlementType } from '../models/Settlement';
 import { getAllSettlements } from '../services/storage/settlementStorage';
 import { getSettlements } from '../services/api/settlementService';
@@ -197,7 +198,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* 타입 필터 */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -246,7 +247,7 @@ export default function HomeScreen() {
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
