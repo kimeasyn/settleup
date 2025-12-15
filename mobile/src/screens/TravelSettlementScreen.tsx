@@ -17,6 +17,7 @@ import ExpenseItem from '../components/ExpenseItem';
 import AddParticipantModal from '../components/AddParticipantModal';
 import AddExpenseModal from '../components/AddExpenseModal';
 import EditExpenseModal from '../components/EditExpenseModal';
+import EditParticipantModal from '../components/EditParticipantModal';
 import RemainderHandlingModal from '../components/RemainderHandlingModal';
 import ParticipantBalanceSummary from '../components/ParticipantBalanceSummary';
 import EditSettlementModal from '../components/EditSettlementModal';
@@ -28,12 +29,13 @@ import {
   updateExpense,
   toggleParticipantStatus,
   deleteParticipant,
+  updateParticipant,
   addParticipant,
   addExpense,
   updateSettlement,
   deleteSettlement,
 } from '../services/api/settlementService';
-import { AddParticipantRequest } from '../models/Participant';
+import { AddParticipantRequest, UpdateParticipantRequest } from '../models/Participant';
 import { CreateExpenseRequest, UpdateExpenseRequest } from '../models/Expense';
 import { UpdateSettlementRequest } from '../models/Settlement';
 
@@ -54,12 +56,14 @@ export default function TravelSettlementScreen() {
 
   // 모달 상태
   const [addParticipantModalVisible, setAddParticipantModalVisible] = useState(false);
+  const [editParticipantModalVisible, setEditParticipantModalVisible] = useState(false);
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
   const [editExpenseModalVisible, setEditExpenseModalVisible] = useState(false);
   const [remainderModalVisible, setRemainderModalVisible] = useState(false);
   const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
   const [remainder, setRemainder] = useState(0);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseWithDetails | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
 
   /**
    * 데이터 로드
@@ -182,6 +186,29 @@ export default function TravelSettlementScreen() {
       await loadData();
     } catch (error) {
       console.error('지출 수정 실패:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * 참가자 수정
+   */
+  const handleEditParticipant = (participant: Participant) => {
+    setSelectedParticipant(participant);
+    setEditParticipantModalVisible(true);
+  };
+
+  /**
+   * 참가자 수정 제출
+   */
+  const handleUpdateParticipant = async (data: UpdateParticipantRequest) => {
+    if (!selectedParticipant) return;
+
+    try {
+      await updateParticipant(settlementId, selectedParticipant.id, data);
+      await loadData();
+    } catch (error) {
+      console.error('참가자 수정 실패:', error);
       throw error;
     }
   };
@@ -422,6 +449,7 @@ export default function TravelSettlementScreen() {
           </View>
           <ParticipantList
             participants={participants}
+            onEdit={handleEditParticipant}
             onToggleActive={handleToggleParticipant}
             onDelete={handleDeleteParticipant}
           />
@@ -498,6 +526,16 @@ export default function TravelSettlementScreen() {
           settlement={settlement}
           onClose={() => setEditSettlementModalVisible(false)}
           onSubmit={handleUpdateSettlement}
+        />
+      )}
+
+      {/* 참가자 수정 모달 */}
+      {selectedParticipant && (
+        <EditParticipantModal
+          visible={editParticipantModalVisible}
+          participant={selectedParticipant}
+          onClose={() => setEditParticipantModalVisible(false)}
+          onSubmit={handleUpdateParticipant}
         />
       )}
 

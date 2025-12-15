@@ -12,6 +12,7 @@ import { Participant } from '../models/Participant';
 interface ParticipantListProps {
   participants: Participant[];
   onToggleActive?: (participantId: string, isActive: boolean) => void;
+  onEdit?: (participant: Participant) => void;
   onDelete?: (participantId: string) => void;
   onPress?: (participant: Participant) => void;
 }
@@ -23,6 +24,7 @@ interface ParticipantListProps {
 export default function ParticipantList({
   participants,
   onToggleActive,
+  onEdit,
   onDelete,
   onPress,
 }: ParticipantListProps) {
@@ -94,6 +96,14 @@ export default function ParticipantList({
 
       {/* 액션 버튼 */}
       <View style={styles.actionButtons}>
+        {onEdit && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => onEdit(item)}
+          >
+            <Text style={styles.actionButtonText}>수정</Text>
+          </TouchableOpacity>
+        )}
         {onToggleActive && (
           <TouchableOpacity
             style={styles.actionButton}
