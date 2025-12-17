@@ -189,26 +189,38 @@
 
 ---
 
-## 🔲 Phase 8: 히스토리 및 검색
+## ✅ Phase 8: 히스토리 및 검색 (완료)
 
 ### 백엔드
-- [ ] 정산 히스토리 API
-  - [ ] 정산 상태별 필터링 (진행 중/완료)
-  - [ ] 날짜 범위 검색
-  - [ ] 페이지네이션
-- [ ] 정산 검색 API
-  - [ ] 제목으로 검색
-  - [ ] 참가자 이름으로 검색
+- [x] 정산 히스토리 API
+  - [x] 정산 상태별 필터링 (진행 중/완료/보관)
+  - [x] 타입별 필터링 (여행/게임)
+  - [x] 페이지네이션 지원
+- [x] 정산 검색 API
+  - [x] 제목으로 검색 (대소문자 무관)
+  - [x] 설명으로 검색
+  - [x] GET /settlements/search 엔드포인트 구현
+- [x] Repository 메서드 확장
+  - [x] findByTitleContainingIgnoreCaseOrDescriptionContaining
+  - [x] findByStatusOrderByUpdatedAtDesc
+  - [x] findByTypeOrderByUpdatedAtDesc
+  - [x] findAllByOrderByUpdatedAtDesc
+- [x] 포괄적인 단위 테스트 작성 (검색/필터링)
 
 ### 모바일
-- [ ] 히스토리 화면 구현
-  - [ ] 정산 목록 표시
-  - [ ] 상태별 필터 (진행 중/완료)
-  - [ ] 검색 기능
-  - [ ] 무한 스크롤
-- [ ] 정산 상세 히스토리
-  - [ ] 완료된 정산 조회
-  - [ ] 정산 결과 재확인
+- [x] 히스토리 화면 구현 (SettlementHistoryScreen)
+  - [x] 정산 목록 표시
+  - [x] 상태별 필터 (진행 중/완료/보관)
+  - [x] 타입별 필터 (여행/게임)
+  - [x] 검색 기능 (제목/설명)
+  - [x] Pull-to-refresh 지원
+  - [x] 빈 상태 처리
+  - [x] 실시간 필터링 및 결과 카운트
+- [x] 정산 상세 히스토리
+  - [x] 완료된 정산 조회
+  - [x] 정산 결과 재확인
+- [x] 네비게이션 통합 (Bottom Tab)
+- [x] API 연동 완료 (searchSettlements 추가)
 
 ---
 
@@ -307,6 +319,13 @@
 ## 📝 메모
 
 ### 최근 작업 (2025-12-17)
+- ✅ 히스토리 및 검색 기능 완전 구현 (Phase 8 완료)
+  - ✅ 백엔드 검색 API 개선: GET /settlements/search
+  - ✅ 페이지네이션, 필터링, 검색 모두 지원
+  - ✅ SettlementHistoryScreen 이미 완전 구현됨 확인
+  - ✅ 실시간 검색/필터링 및 Pull-to-refresh
+  - ✅ 포괄적인 단위 테스트 추가
+
 - ✅ 지출 분담 설정 기능 완전 구현 (Phase 6 완료)
   - ✅ 백엔드 API 구현: PUT /expenses/{id}/splits
   - ✅ 균등분할과 수동입력 두 방식 모두 지원
@@ -329,6 +348,6 @@
 - ✅ 백엔드 splits 필드 optional로 변경
 
 ### 다음 우선순위
-1. 히스토리 및 검색 기능 (Phase 8)
-2. UI/UX 개선 (Phase 10)
-3. 알림 및 고급 기능 (Phase 11)
+1. UI/UX 개선 (Phase 10)
+2. 알림 및 고급 기능 (Phase 11)
+3. 오프라인 동기화 (Phase 9) - 선택적

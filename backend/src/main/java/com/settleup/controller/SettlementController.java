@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import com.settleup.domain.settlement.SettlementStatus;
+import com.settleup.domain.settlement.SettlementType;
+import org.springframework.data.domain.Page;
 
 /**
  * Settlement Controller
@@ -98,6 +101,47 @@ public class SettlementController {
         log.info("GET /settlements - Getting all settlements");
 
         List<SettlementResponse> settlements = settlementService.getAllSettlements();
+
+        return ResponseEntity.ok(settlements);
+    }
+
+    /**
+     * 정산 검색 및 필터링 (페이징)
+     * GET /api/v1/settlements/search
+     */
+    @Operation(
+            summary = "정산 검색 및 필터링",
+            description = "제목/설명으로 검색하고 상태/타입으로 필터링된 정산 목록을 페이징으로 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "검색 성공"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 파라미터",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @GetMapping("/search")
+    public ResponseEntity<Page<SettlementResponse>> searchSettlements(
+            @Parameter(description = "검색어 (제목 또는 설명)", example = "제주도")
+            @RequestParam(required = false) String query,
+            @Parameter(description = "정산 상태", example = "ACTIVE")
+            @RequestParam(required = false) SettlementStatus status,
+            @Parameter(description = "정산 타입", example = "TRAVEL")
+            @RequestParam(required = false) SettlementType type,
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "20")
+            @RequestParam(defaultValue = "20") int size) {
+
+        log.info("GET /settlements/search - query='{}', status={}, type={}, page={}, size={}",
+                query, status, type, page, size);
+
+        Page<SettlementResponse> settlements = settlementService.searchSettlements(
+                query, status, type, page, size);
 
         return ResponseEntity.ok(settlements);
     }

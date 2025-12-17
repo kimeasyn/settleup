@@ -20,6 +20,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -219,5 +223,98 @@ class SettlementServiceTest {
 
         verify(settlementRepository, times(1)).existsById(settlementId);
         verify(settlementRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("정산 검색 - 검색어로 조회 성공")
+    void searchSettlements_ByQuery_Success() {
+        // given
+        String query = "제주도";
+        Pageable pageable = PageRequest.of(0, 20);
+
+        Settlement settlement2 = Settlement.builder()
+                .id(UUID.randomUUID())
+                .title("제주도 가족여행")
+                .type(SettlementType.TRAVEL)
+                .status(SettlementStatus.COMPLETED)
+                .creatorId(creatorId)
+                .currency("KRW")
+                .build();
+
+        List<Settlement> settlements = Arrays.asList(settlement, settlement2);
+        Page<Settlement> settlementPage = new PageImpl<>(settlements, pageable, 2);
+
+        when(settlementRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrderByUpdatedAtDesc(
+                eq(query), eq(query), any(Pageable.class)))
+                .thenReturn(settlementPage);
+
+        // when
+        Page<SettlementResponse> result = settlementService.searchSettlements(query, null, null, 0, 20);
+
+        // then
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent().get(0).getTitle()).contains("제주도");
+        assertThat(result.getContent().get(1).getTitle()).contains("제주도");
+
+        verify(settlementRepository, times(1))
+                .findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrderByUpdatedAtDesc(
+                        eq(query), eq(query), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("정산 검색 - 상태 필터링 성공")
+    void searchSettlements_ByStatus_Success() {
+        // given
+        SettlementStatus status = SettlementStatus.ACTIVE;
+        Pageable pageable = PageRequest.of(0, 20);
+
+        List<Settlement> settlements = Arrays.asList(settlement);
+        Page<Settlement> settlementPage = new PageImpl<>(settlements, pageable, 1);
+
+        when(settlementRepository.findByStatusOrderByUpdatedAtDesc(eq(status), any(Pageable.class)))
+                .thenReturn(settlementPage);
+
+        // when
+        Page<SettlementResponse> result = settlementService.searchSettlements(null, status, null, 0, 20);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getStatus()).isEqualTo(SettlementStatus.ACTIVE);
+
+        verify(settlementRepository, times(1))
+                .findByStatusOrderByUpdatedAtDesc(eq(status), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("정산 검색 - 전체 조회 성공")
+    void searchSettlements_NoFilter_Success() {
+        // given
+        Pageable pageable = PageRequest.of(0, 20);
+
+        Settlement settlement2 = Settlement.builder()
+                .id(UUID.randomUUID())
+                .title("서울 모임")
+                .type(SettlementType.GAME)
+                .status(SettlementStatus.COMPLETED)
+                .creatorId(creatorId)
+                .currency("KRW")
+                .build();
+
+        List<Settlement> settlements = Arrays.asList(settlement, settlement2);
+        Page<Settlement> settlementPage = new PageImpl<>(settlements, pageable, 2);
+
+        when(settlementRepository.findAllByOrderByUpdatedAtDesc(any(Pageable.class)))
+                .thenReturn(settlementPage);
+
+        // when
+        Page<SettlementResponse> result = settlementService.searchSettlements(null, null, null, 0, 20);
+
+        // then
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+
+        verify(settlementRepository, times(1))
+                .findAllByOrderByUpdatedAtDesc(any(Pageable.class));
     }
 }

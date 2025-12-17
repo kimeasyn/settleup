@@ -48,4 +48,31 @@ public interface SettlementRepository extends JpaRepository<Settlement, UUID> {
      * 제목으로 검색 (부분 일치)
      */
     List<Settlement> findByTitleContainingIgnoreCase(String title);
+
+    /**
+     * 제목 또는 설명으로 검색 (페이징)
+     */
+    Page<Settlement> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrderByUpdatedAtDesc(
+            String title, String description, Pageable pageable);
+
+    /**
+     * 상태별 필터링 (페이징)
+     */
+    Page<Settlement> findByStatusOrderByUpdatedAtDesc(SettlementStatus status, Pageable pageable);
+
+    /**
+     * 타입별 필터링 (페이징)
+     */
+    Page<Settlement> findByTypeOrderByUpdatedAtDesc(SettlementType type, Pageable pageable);
+
+    /**
+     * 상태와 타입으로 필터링 (페이징)
+     */
+    Page<Settlement> findByStatusAndTypeOrderByUpdatedAtDesc(
+            SettlementStatus status, SettlementType type, Pageable pageable);
+
+    /**
+     * 전체 정산 조회 (페이징, 최신순)
+     */
+    Page<Settlement> findAllByOrderByUpdatedAtDesc(Pageable pageable);
 }

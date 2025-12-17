@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Settlement, SettlementStatus, SettlementType } from '../models/Settlement';
-import { getSettlements } from '../services/api/settlementService';
+import { getSettlements, searchSettlements } from '../services/api/settlementService';
 
 /**
  * SettlementHistoryScreen
@@ -27,6 +27,10 @@ export default function SettlementHistoryScreen() {
   const [selectedStatus, setSelectedStatus] = useState<SettlementStatus | 'ALL'>('ALL');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const pageSize = 20;
 
   /**
    * 정산 목록 로드

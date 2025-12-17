@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.settleup.domain.settlement.SettlementType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Settlement Service
@@ -85,6 +89,44 @@ public class SettlementService {
         return settlements.stream()
                 .map(SettlementResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 정산 목록 조회 (페이징, 필터링, 검색)
+     */
+    public Page<SettlementResponse> searchSettlements(
+            String query,
+            SettlementStatus status,
+            SettlementType type,
+            int page,
+            int size) {
+
+        log.info("Searching settlements: query='{}', status={}, type={}, page={}, size={}",
+                query, status, type, page, size);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Settlement> settlements;
+
+        if (query != null && !query.trim().isEmpty()) {
+            // 검색어가 있는 경우
+            settlements = settlementRepository
+                    .findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrderByUpdatedAtDesc(
+                            query, query, pageable);
+        } else if (status != null && type != null) {
+            // 상태와 타입 모두 필터링
+            settlements = settlementRepository.findByStatusAndTypeOrderByUpdatedAtDesc(status, type, pageable);
+        } else if (status != null) {
+            // 상태만 필터링
+            settlements = settlementRepository.findByStatusOrderByUpdatedAtDesc(status, pageable);
+        } else if (type != null) {
+            // 타입만 필터링
+            settlements = settlementRepository.findByTypeOrderByUpdatedAtDesc(type, pageable);
+        } else {
+            // 필터링 없이 전체 조회
+            settlements = settlementRepository.findAllByOrderByUpdatedAtDesc(pageable);
+        }
+
+        return settlements.map(SettlementResponse::from);
     }
 
     /**

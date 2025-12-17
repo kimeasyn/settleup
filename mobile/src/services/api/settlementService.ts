@@ -69,6 +69,44 @@ export const getSettlements = async (): Promise<Settlement[]> => {
 };
 
 /**
+ * 정산 검색 및 필터링 (페이징)
+ * @param query 검색어
+ * @param status 정산 상태
+ * @param type 정산 타입
+ * @param page 페이지 번호
+ * @param size 페이지 크기
+ * @returns 페이징된 정산 목록
+ */
+export const searchSettlements = async (
+  query?: string,
+  status?: SettlementStatus,
+  type?: SettlementType,
+  page: number = 0,
+  size: number = 20
+): Promise<{
+  content: Settlement[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+}> => {
+  try {
+    const params: any = { page, size };
+    if (query) params.query = query;
+    if (status) params.status = status;
+    if (type) params.type = type;
+
+    const response = await apiClient.get('/settlements/search', { params });
+    return response.data;
+  } catch (error) {
+    console.error('[searchSettlements] Error:', error);
+    throw error;
+  }
+};
+
+/**
  * 정산 업데이트
  * @param id 정산 ID
  * @param data 업데이트 요청 데이터
