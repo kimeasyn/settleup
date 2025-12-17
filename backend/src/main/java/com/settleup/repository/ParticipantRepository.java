@@ -54,4 +54,9 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * 정산 삭제 시 관련 참가자도 삭제 (Cascade)
      */
     void deleteBySettlementId(UUID settlementId);
+
+    /**
+     * ID 목록으로 참가자 목록 조회
+     */
+    List<Participant> findAllByIdIn(List<UUID> ids);
 }

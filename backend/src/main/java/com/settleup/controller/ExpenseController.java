@@ -253,4 +253,50 @@ public class ExpenseController {
 
         return ResponseEntity.ok(expenses);
     }
+
+    /**
+     * 지출 분담 설정
+     * PUT /api/v1/settlements/{settlementId}/expenses/{expenseId}/splits
+     */
+    @Operation(
+            summary = "지출 분담 설정",
+            description = "지출의 참가자별 분담 금액을 설정합니다. 균등분할 또는 수동입력 방식을 선택할 수 있습니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "분담 설정 성공",
+                    content = @Content(schema = @Schema(implementation = ExpenseResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (분담 금액 합계 불일치 등)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "지출을 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @PutMapping("/{expenseId}/splits")
+    public ResponseEntity<ExpenseResponse> setExpenseSplits(
+            @Parameter(description = "정산 ID", required = true)
+            @PathVariable UUID settlementId,
+            @Parameter(description = "지출 ID", required = true)
+            @PathVariable UUID expenseId,
+            @Valid @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "분담 설정 정보",
+                    required = true
+            )
+            ExpenseSplitRequest request) {
+
+        log.info("PUT /settlements/{}/expenses/{}/splits - Setting expense splits: type={}",
+                settlementId, expenseId, request.getSplitType());
+
+        ExpenseResponse response = expenseService.setExpenseSplits(expenseId, request);
+
+        return ResponseEntity.ok(response);
+    }
 }

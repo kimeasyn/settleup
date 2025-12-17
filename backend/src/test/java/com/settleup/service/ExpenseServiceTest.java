@@ -6,6 +6,8 @@ import com.settleup.domain.settlement.Settlement;
 import com.settleup.domain.settlement.SettlementType;
 import com.settleup.dto.ExpenseDto.ExpenseRequest;
 import com.settleup.dto.ExpenseDto.ExpenseResponse;
+import com.settleup.dto.ExpenseDto.ExpenseSplitRequest;
+import com.settleup.dto.ExpenseDto.ExpenseSplitRequest.ParticipantSplitRequest;
 import com.settleup.exception.BusinessException;
 import com.settleup.exception.ResourceNotFoundException;
 import com.settleup.repository.ExpenseRepository;
@@ -23,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -55,15 +58,18 @@ class ExpenseServiceTest {
 
     private UUID settlementId;
     private UUID participantId;
+    private UUID participantId2;
     private UUID expenseId;
     private Settlement settlement;
     private Participant participant;
+    private Participant participant2;
     private Expense expense;
 
     @BeforeEach
     void setUp() {
         settlementId = UUID.randomUUID();
         participantId = UUID.randomUUID();
+        participantId2 = UUID.randomUUID();
         expenseId = UUID.randomUUID();
 
         settlement = Settlement.builder()
@@ -78,6 +84,13 @@ class ExpenseServiceTest {
                 .id(participantId)
                 .settlementId(settlementId)
                 .name("김철수")
+                .isActive(true)
+                .build();
+
+        participant2 = Participant.builder()
+                .id(participantId2)
+                .settlementId(settlementId)
+                .name("박영희")
                 .isActive(true)
                 .build();
 
@@ -320,5 +333,171 @@ class ExpenseServiceTest {
 
         verify(expenseRepository, times(1)).existsById(expenseId);
         verify(expenseRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("지출 분담 설정 - 균등분할 성공")
+    void setExpenseSplits_EqualSplit_Success() {
+        // given
+        List<Participant> participants = Arrays.asList(participant, participant2);
+
+        ParticipantSplitRequest split1 = ParticipantSplitRequest.builder()
+                .participantId(participantId)
+                .share(new BigDecimal("25000"))
+                .build();
+
+        ParticipantSplitRequest split2 = ParticipantSplitRequest.builder()
+                .participantId(participantId2)
+                .share(new BigDecimal("25000"))
+                .build();
+
+        ExpenseSplitRequest request = ExpenseSplitRequest.builder()
+                .splitType(ExpenseSplitRequest.SplitType.EQUAL)
+                .splits(Arrays.asList(split1, split2))
+                .build();
+
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
+        when(participantRepository.findAllByIdIn(Arrays.asList(participantId, participantId2)))
+                .thenReturn(participants);
+        doNothing().when(expenseSplitRepository).deleteByExpenseId(expenseId);
+        when(expenseSplitRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        ExpenseResponse response = expenseService.setExpenseSplits(expenseId, request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(expenseId);
+
+        verify(expenseRepository, times(1)).findById(expenseId);
+        verify(participantRepository, times(1)).findAllByIdIn(Arrays.asList(participantId, participantId2));
+        verify(expenseSplitRepository, times(1)).deleteByExpenseId(expenseId);
+        verify(expenseSplitRepository, times(1)).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("지출 분담 설정 - 수동분할 성공")
+    void setExpenseSplits_ManualSplit_Success() {
+        // given
+        List<Participant> participants = Arrays.asList(participant, participant2);
+
+        ParticipantSplitRequest split1 = ParticipantSplitRequest.builder()
+                .participantId(participantId)
+                .share(new BigDecimal("20000"))
+                .build();
+
+        ParticipantSplitRequest split2 = ParticipantSplitRequest.builder()
+                .participantId(participantId2)
+                .share(new BigDecimal("30000"))
+                .build();
+
+        ExpenseSplitRequest request = ExpenseSplitRequest.builder()
+                .splitType(ExpenseSplitRequest.SplitType.MANUAL)
+                .splits(Arrays.asList(split1, split2))
+                .build();
+
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
+        when(participantRepository.findAllByIdIn(Arrays.asList(participantId, participantId2)))
+                .thenReturn(participants);
+        doNothing().when(expenseSplitRepository).deleteByExpenseId(expenseId);
+        when(expenseSplitRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        ExpenseResponse response = expenseService.setExpenseSplits(expenseId, request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(expenseId);
+
+        verify(expenseRepository, times(1)).findById(expenseId);
+        verify(participantRepository, times(1)).findAllByIdIn(Arrays.asList(participantId, participantId2));
+        verify(expenseSplitRepository, times(1)).deleteByExpenseId(expenseId);
+        verify(expenseSplitRepository, times(1)).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("지출 분담 설정 - 분담 금액 합계 불일치")
+    void setExpenseSplits_InvalidTotalAmount() {
+        // given
+        List<Participant> participants = Arrays.asList(participant, participant2);
+
+        ParticipantSplitRequest split1 = ParticipantSplitRequest.builder()
+                .participantId(participantId)
+                .share(new BigDecimal("20000"))
+                .build();
+
+        ParticipantSplitRequest split2 = ParticipantSplitRequest.builder()
+                .participantId(participantId2)
+                .share(new BigDecimal("20000")) // 총합 40000, 지출은 50000
+                .build();
+
+        ExpenseSplitRequest request = ExpenseSplitRequest.builder()
+                .splitType(ExpenseSplitRequest.SplitType.MANUAL)
+                .splits(Arrays.asList(split1, split2))
+                .build();
+
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
+        when(participantRepository.findAllByIdIn(Arrays.asList(participantId, participantId2)))
+                .thenReturn(participants);
+
+        // when & then
+        assertThatThrownBy(() -> expenseService.setExpenseSplits(expenseId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("분담 금액의 합계가");
+
+        verify(expenseSplitRepository, never()).deleteByExpenseId(any());
+        verify(expenseSplitRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("지출 분담 설정 - 지출을 찾을 수 없음")
+    void setExpenseSplits_ExpenseNotFound() {
+        // given
+        ExpenseSplitRequest request = ExpenseSplitRequest.builder()
+                .splitType(ExpenseSplitRequest.SplitType.EQUAL)
+                .splits(new ArrayList<>())
+                .build();
+
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> expenseService.setExpenseSplits(expenseId, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Expense");
+
+        verify(participantRepository, never()).findAllByIdIn(any());
+        verify(expenseSplitRepository, never()).deleteByExpenseId(any());
+    }
+
+    @Test
+    @DisplayName("지출 분담 설정 - 참가자를 찾을 수 없음")
+    void setExpenseSplits_ParticipantNotFound() {
+        // given
+        ParticipantSplitRequest split1 = ParticipantSplitRequest.builder()
+                .participantId(participantId)
+                .share(new BigDecimal("25000"))
+                .build();
+
+        ParticipantSplitRequest split2 = ParticipantSplitRequest.builder()
+                .participantId(participantId2)
+                .share(new BigDecimal("25000"))
+                .build();
+
+        ExpenseSplitRequest request = ExpenseSplitRequest.builder()
+                .splitType(ExpenseSplitRequest.SplitType.EQUAL)
+                .splits(Arrays.asList(split1, split2))
+                .build();
+
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
+        when(participantRepository.findAllByIdIn(Arrays.asList(participantId, participantId2)))
+                .thenReturn(Arrays.asList(participant)); // participant2를 찾지 못함
+
+        // when & then
+        assertThatThrownBy(() -> expenseService.setExpenseSplits(expenseId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("일부 참가자를 찾을 수 없습니다");
+
+        verify(expenseSplitRepository, never()).deleteByExpenseId(any());
+        verify(expenseSplitRepository, never()).saveAll(any());
     }
 }

@@ -83,31 +83,8 @@ public class ExpenseDto {
         @Schema(description = "지출 날짜", example = "2025-01-15T18:30:00")
         private LocalDateTime expenseDate;
 
-        @Schema(description = "지출 분담 내역")
-        @Valid
-        private List<ExpenseSplitRequest> splits;
     }
 
-    /**
-     * 지출 분담 요청
-     */
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Schema(description = "지출 분담 요청")
-    public static class ExpenseSplitRequest {
-
-        @Schema(description = "참가자 ID", example = "550e8400-e29b-41d4-a716-446655440000", required = true)
-        @NotNull(message = "참가자 ID는 필수입니다")
-        private UUID participantId;
-
-        @Schema(description = "분담 금액", example = "16666.67", required = true)
-        @NotNull(message = "분담 금액은 필수입니다")
-        @PositiveOrZero(message = "분담 금액은 0 이상이어야 합니다")
-        private BigDecimal share;
-    }
 
     /**
      * 지출 응답
@@ -234,6 +211,57 @@ public class ExpenseDto {
                     .share(split.getShare())
                     .sharePercentage(split.getSharePercentage())
                     .build();
+        }
+    }
+
+    /**
+     * 지출 분담 설정 요청
+     */
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "지출 분담 설정 요청")
+    public static class ExpenseSplitRequest {
+
+        @Schema(description = "분담 방식", example = "MANUAL", required = true,
+                allowableValues = {"EQUAL", "MANUAL"})
+        @NotNull(message = "분담 방식은 필수입니다")
+        private SplitType splitType;
+
+        @Schema(description = "참가자별 분담 금액 목록")
+        @Valid
+        @NotEmpty(message = "분담 내역은 최소 1개 이상이어야 합니다")
+        private List<ParticipantSplitRequest> splits;
+
+        /**
+         * 분담 방식
+         */
+        public enum SplitType {
+            EQUAL,  // 균등 분할
+            MANUAL  // 수동 입력
+        }
+
+        /**
+         * 참가자별 분담 금액 요청
+         */
+        @Getter
+        @Setter
+        @NoArgsConstructor
+        @AllArgsConstructor
+        @Builder
+        @Schema(description = "참가자별 분담 금액 요청")
+        public static class ParticipantSplitRequest {
+
+            @Schema(description = "참가자 ID", example = "550e8400-e29b-41d4-a716-446655440000", required = true)
+            @NotNull(message = "참가자 ID는 필수입니다")
+            private UUID participantId;
+
+            @Schema(description = "분담 금액", example = "16666.67", required = true)
+            @NotNull(message = "분담 금액은 필수입니다")
+            @PositiveOrZero(message = "분담 금액은 0 이상이어야 합니다")
+            private BigDecimal share;
         }
     }
 }
