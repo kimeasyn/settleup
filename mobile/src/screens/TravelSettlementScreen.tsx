@@ -40,6 +40,9 @@ import {
 import { AddParticipantRequest, UpdateParticipantRequest } from '../models/Participant';
 import { CreateExpenseRequest, UpdateExpenseRequest, ExpenseSplitRequest } from '../models/Expense';
 import { UpdateSettlementRequest } from '../models/Settlement';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 /**
  * TravelSettlementScreen
@@ -705,13 +708,13 @@ const styles = StyleSheet.create({
     color: '#212121',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: Spacing.spacing['2xl'],
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.spacing.lg,
   },
   sectionTitle: {
     fontSize: 18,
@@ -730,19 +733,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   emptyExpenses: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 40,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing['4xl'],
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
-    color: '#9E9E9E',
-    marginBottom: 8,
+    ...Typography.styles.body1,
+    color: Colors.text.hint,
+    marginBottom: Spacing.spacing.sm,
   },
   emptySubText: {
-    fontSize: 14,
-    color: '#BDBDBD',
+    ...Typography.styles.body2,
+    color: Colors.text.disabled,
   },
   calculateButton: {
     backgroundColor: '#4CAF50',

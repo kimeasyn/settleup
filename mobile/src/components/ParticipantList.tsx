@@ -8,6 +8,9 @@ import {
   Alert,
 } from 'react-native';
 import { Participant } from '../models/Participant';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing } from '../constants/Spacing';
 
 interface ParticipantListProps {
   participants: Participant[];
@@ -82,7 +85,7 @@ export default function ParticipantList({
     >
       <View style={styles.participantInfo}>
         {/* 활성 상태 표시 */}
-        <View style={[styles.statusDot, { backgroundColor: item.isActive ? '#4CAF50' : '#9E9E9E' }]} />
+        <View style={[styles.statusDot, { backgroundColor: item.isActive ? Colors.status.success : Colors.text.hint }]} />
 
         <View style={styles.participantDetails}>
           <Text style={[styles.participantName, !item.isActive && styles.participantNameInactive]}>
@@ -169,25 +172,24 @@ export default function ParticipantList({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
     overflow: 'hidden',
   },
   header: {
-    padding: 16,
-    backgroundColor: '#F5F5F5',
+    padding: Spacing.spacing.lg,
+    backgroundColor: Colors.background.elevated,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: Colors.border.light,
   },
   headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212121',
+    ...Typography.styles.body1,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
   },
   headerSubText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#757575',
+    ...Typography.styles.body2,
+    color: Colors.text.secondary,
   },
   listContainer: {
     flexGrow: 1,
@@ -196,13 +198,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: Spacing.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: Colors.background.elevated,
+    backgroundColor: Colors.background.paper,
   },
   participantItemInactive: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.background.disabled,
   },
   participantInfo: {
     flex: 1,
@@ -212,8 +214,8 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    marginRight: 12,
+    borderRadius: Spacing.radius.full,
+    marginRight: Spacing.spacing.lg,
   },
   participantDetails: {
     flex: 1,
@@ -234,7 +236,7 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: Spacing.spacing.sm,
   },
   actionButton: {
     paddingHorizontal: 12,
@@ -254,16 +256,16 @@ const styles = StyleSheet.create({
     color: '#F44336',
   },
   emptyContainer: {
-    padding: 40,
+    padding: Spacing.spacing['4xl'],
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
-    color: '#9E9E9E',
-    marginBottom: 8,
+    ...Typography.styles.body1,
+    color: Colors.text.hint,
+    marginBottom: Spacing.spacing.sm,
   },
   emptySubText: {
-    fontSize: 14,
-    color: '#BDBDBD',
+    ...Typography.styles.body2,
+    color: Colors.text.disabled,
   },
 });

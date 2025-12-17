@@ -7,6 +7,9 @@ import {
   Alert,
 } from 'react-native';
 import { Expense, ExpenseWithDetails } from '../models/Expense';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 interface ExpenseItemProps {
   expense: ExpenseWithDetails;
@@ -61,18 +64,18 @@ export default function ExpenseItem({
    * 카테고리 배경색
    */
   const getCategoryColor = (category?: string): string => {
-    if (!category) return '#E0E0E0';
+    if (!category) return Colors.semantic.expense.other;
 
     const colors: { [key: string]: string } = {
-      '식비': '#FFE0B2',
-      '교통': '#B3E5FC',
-      '숙박': '#C5E1A5',
-      '관광': '#F8BBD0',
-      '쇼핑': '#D1C4E9',
-      '기타': '#E0E0E0',
+      '식비': Colors.semantic.expense.food,
+      '교통': Colors.semantic.expense.transport,
+      '숙박': Colors.semantic.expense.lodging,
+      '관광': Colors.semantic.expense.tourism,
+      '쇼핑': Colors.semantic.expense.shopping,
+      '기타': Colors.semantic.expense.other,
     };
 
-    return colors[category] || '#E0E0E0';
+    return colors[category] || Colors.semantic.expense.other;
   };
 
   /**
@@ -206,15 +209,11 @@ export default function ExpenseItem({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.component.card,
+    marginBottom: Spacing.component.list,
+    ...createShadowStyle('sm'),
   },
   mainInfo: {
     flexDirection: 'row',
@@ -223,7 +222,7 @@ const styles = StyleSheet.create({
   },
   leftSection: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Spacing.spacing.lg,
   },
   description: {
     fontSize: 16,
@@ -235,17 +234,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: Spacing.spacing.sm,
   },
   categoryBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.spacing.sm,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: Spacing.radius.lg,
   },
   categoryText: {
-    fontSize: 11,
-    color: '#424242',
-    fontWeight: '500',
+    ...Typography.styles.overline,
+    color: Colors.text.secondary,
+    textTransform: 'none',
   },
   payerText: {
     fontSize: 12,
@@ -259,37 +258,37 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   amount: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212121',
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
     marginBottom: 2,
   },
   currency: {
-    fontSize: 11,
-    color: '#757575',
+    ...Typography.styles.overline,
+    color: Colors.text.secondary,
+    textTransform: 'none',
   },
   expandedSection: {
-    marginTop: 12,
+    marginTop: Spacing.spacing.lg,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F5F5F5',
-    marginBottom: 12,
+    backgroundColor: Colors.border.light,
+    marginBottom: Spacing.spacing.lg,
   },
   splitsSection: {
-    marginBottom: 12,
+    marginBottom: Spacing.spacing.lg,
   },
   splitsTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#616161',
-    marginBottom: 8,
+    ...Typography.styles.label,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.spacing.sm,
   },
   splitItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: Spacing.spacing.sm,
   },
   splitName: {
     fontSize: 14,
@@ -306,28 +305,29 @@ const styles = StyleSheet.create({
     color: '#212121',
   },
   splitPercentage: {
-    fontSize: 11,
-    color: '#9E9E9E',
+    ...Typography.styles.overline,
+    color: Colors.text.hint,
+    textTransform: 'none',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
+    gap: Spacing.spacing.sm,
+    marginTop: Spacing.spacing.sm,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: Spacing.spacing.sm,
+    borderRadius: Spacing.radius.sm,
     alignItems: 'center',
   },
   splitButton: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: Colors.action.success,
   },
   editButton: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: Colors.action.secondary,
   },
   deleteButton: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: Colors.action.danger,
   },
   splitButtonText: {
     fontSize: 14,
