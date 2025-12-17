@@ -18,6 +18,7 @@ import {
   Expense,
   CreateExpenseRequest,
   UpdateExpenseRequest,
+  ExpenseSplitRequest,
 } from '../../models/Expense';
 import { SettlementResult } from '../../models/SettlementResult';
 
@@ -269,6 +270,30 @@ export const deleteExpense = async (
 };
 
 /**
+ * 지출 분담 설정
+ * @param settlementId 정산 ID
+ * @param expenseId 지출 ID
+ * @param data 분담 설정 데이터
+ * @returns 업데이트된 지출 정보
+ */
+export const setExpenseSplits = async (
+  settlementId: string,
+  expenseId: string,
+  data: ExpenseSplitRequest
+): Promise<Expense> => {
+  try {
+    const response = await apiClient.put<Expense>(
+      `/settlements/${settlementId}/expenses/${expenseId}/splits`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[setExpenseSplits] Error:', error);
+    throw error;
+  }
+};
+
+/**
  * 정산 계산
  * @param settlementId 정산 ID
  * @param remainderPayerId 나머지 지불 참가자 ID (선택)
@@ -318,6 +343,7 @@ export const SettlementService = {
   getExpenses,
   updateExpense,
   deleteExpense,
+  setExpenseSplits,
   calculateSettlement,
 };
 

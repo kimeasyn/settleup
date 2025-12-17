@@ -14,6 +14,7 @@ interface ExpenseItemProps {
   onPress?: (expense: ExpenseWithDetails) => void;
   onDelete?: (expenseId: string) => void;
   onEdit?: (expense: ExpenseWithDetails) => void;
+  onSetSplits?: (expense: ExpenseWithDetails) => void;
 }
 
 /**
@@ -26,6 +27,7 @@ export default function ExpenseItem({
   onPress,
   onDelete,
   onEdit,
+  onSetSplits,
 }: ExpenseItemProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -168,8 +170,16 @@ export default function ExpenseItem({
           )}
 
           {/* 액션 버튼 */}
-          {(onEdit || onDelete) && (
+          {(onSetSplits || onEdit || onDelete) && (
             <View style={styles.actionButtons}>
+              {onSetSplits && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.splitButton]}
+                  onPress={() => onSetSplits(expense)}
+                >
+                  <Text style={styles.splitButtonText}>분담설정</Text>
+                </TouchableOpacity>
+              )}
               {onEdit && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.editButton]}
@@ -310,11 +320,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  splitButton: {
+    backgroundColor: '#E8F5E9',
+  },
   editButton: {
     backgroundColor: '#E3F2FD',
   },
   deleteButton: {
     backgroundColor: '#FFEBEE',
+  },
+  splitButtonText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '500',
   },
   editButtonText: {
     fontSize: 14,

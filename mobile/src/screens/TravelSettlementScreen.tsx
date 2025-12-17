@@ -17,6 +17,7 @@ import ExpenseItem from '../components/ExpenseItem';
 import AddParticipantModal from '../components/AddParticipantModal';
 import AddExpenseModal from '../components/AddExpenseModal';
 import EditExpenseModal from '../components/EditExpenseModal';
+import ExpenseSplitModal from '../components/ExpenseSplitModal';
 import EditParticipantModal from '../components/EditParticipantModal';
 import RemainderHandlingModal from '../components/RemainderHandlingModal';
 import ParticipantBalanceSummary from '../components/ParticipantBalanceSummary';
@@ -27,6 +28,7 @@ import {
   getExpenses,
   deleteExpense,
   updateExpense,
+  setExpenseSplits,
   toggleParticipantStatus,
   deleteParticipant,
   updateParticipant,
@@ -36,7 +38,7 @@ import {
   deleteSettlement,
 } from '../services/api/settlementService';
 import { AddParticipantRequest, UpdateParticipantRequest } from '../models/Participant';
-import { CreateExpenseRequest, UpdateExpenseRequest } from '../models/Expense';
+import { CreateExpenseRequest, UpdateExpenseRequest, ExpenseSplitRequest } from '../models/Expense';
 import { UpdateSettlementRequest } from '../models/Settlement';
 
 /**
@@ -59,6 +61,7 @@ export default function TravelSettlementScreen() {
   const [editParticipantModalVisible, setEditParticipantModalVisible] = useState(false);
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
   const [editExpenseModalVisible, setEditExpenseModalVisible] = useState(false);
+  const [expenseSplitModalVisible, setExpenseSplitModalVisible] = useState(false);
   const [remainderModalVisible, setRemainderModalVisible] = useState(false);
   const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
   const [remainder, setRemainder] = useState(0);
@@ -209,6 +212,29 @@ export default function TravelSettlementScreen() {
       await loadData();
     } catch (error) {
       console.error('참가자 수정 실패:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * 지출 분담 설정
+   */
+  const handleSetExpenseSplits = (expense: ExpenseWithDetails) => {
+    setSelectedExpense(expense);
+    setExpenseSplitModalVisible(true);
+  };
+
+  /**
+   * 지출 분담 설정 제출
+   */
+  const handleSubmitExpenseSplits = async (data: ExpenseSplitRequest) => {
+    if (!selectedExpense) return;
+
+    try {
+      await setExpenseSplits(settlementId, selectedExpense.id, data);
+      await loadData();
+    } catch (error) {
+      console.error('지출 분담 설정 실패:', error);
       throw error;
     }
   };
@@ -477,6 +503,7 @@ export default function TravelSettlementScreen() {
                 key={expense.id}
                 expense={expense}
                 currency={settlement.currency}
+                onSetSplits={handleSetExpenseSplits}
                 onEdit={handleEditExpense}
                 onDelete={handleDeleteExpense}
               />
@@ -536,6 +563,17 @@ export default function TravelSettlementScreen() {
           participant={selectedParticipant}
           onClose={() => setEditParticipantModalVisible(false)}
           onSubmit={handleUpdateParticipant}
+        />
+      )}
+
+      {/* 지출 분담 설정 모달 */}
+      {selectedExpense && (
+        <ExpenseSplitModal
+          visible={expenseSplitModalVisible}
+          expense={selectedExpense}
+          participants={participants}
+          onClose={() => setExpenseSplitModalVisible(false)}
+          onSubmit={handleSubmitExpenseSplits}
         />
       )}
 

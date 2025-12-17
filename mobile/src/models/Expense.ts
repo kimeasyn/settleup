@@ -133,3 +133,25 @@ export interface UpdateExpenseRequest {
   /** 지출 분담 정보 (업데이트 시 전체 교체) */
   splits?: CreateExpenseSplitRequest[];
 }
+
+/**
+ * 지출 분담 설정 요청 데이터
+ */
+export interface ExpenseSplitRequest {
+  /** 분담 방식 */
+  splitType: 'EQUAL' | 'MANUAL';
+
+  /** 참가자별 분담 금액 목록 */
+  splits: ParticipantSplitRequest[];
+}
+
+/**
+ * 참가자별 분담 금액 요청 데이터
+ */
+export interface ParticipantSplitRequest {
+  /** 참가자 ID */
+  participantId: string;
+
+  /** 분담 금액 */
+  share: number;
+}
