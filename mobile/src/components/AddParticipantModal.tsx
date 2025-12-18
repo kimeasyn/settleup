@@ -11,6 +11,9 @@ import {
   Alert,
 } from 'react-native';
 import { AddParticipantRequest } from '../models/Participant';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 interface AddParticipantModalProps {
   visible: boolean;
@@ -174,30 +177,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.overlay.medium,
   },
   modalContainer: {
     width: '90%',
     maxWidth: 400,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.component.modal,
+    ...createShadowStyle('lg'),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: Spacing.spacing.xl,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#212121',
+    ...Typography.styles.h3,
+    color: Colors.text.primary,
   },
   closeButton: {
     width: 32,
@@ -207,63 +205,60 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 32,
-    color: '#9E9E9E',
+    color: Colors.text.hint,
     lineHeight: 32,
   },
   form: {
-    marginBottom: 24,
+    marginBottom: Spacing.spacing['2xl'],
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: Spacing.spacing.lg,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#424242',
-    marginBottom: 8,
+    ...Typography.styles.label,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.spacing.sm,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#212121',
-    backgroundColor: '#FAFAFA',
+    borderColor: Colors.border.light,
+    borderRadius: Spacing.radius.sm,
+    padding: Spacing.spacing.lg,
+    ...Typography.styles.body1,
+    color: Colors.text.primary,
+    backgroundColor: Colors.background.elevated,
   },
   hint: {
-    fontSize: 12,
-    color: '#9E9E9E',
-    marginTop: 4,
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginTop: Spacing.spacing.xs,
     textAlign: 'right',
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Spacing.spacing.lg,
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: Spacing.spacing.lg,
+    borderRadius: Spacing.radius.sm,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.background.disabled,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#757575',
+    ...Typography.styles.button,
+    color: Colors.text.secondary,
   },
   submitButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Colors.primary.main,
   },
   submitButtonDisabled: {
-    backgroundColor: '#BDBDBD',
+    backgroundColor: Colors.text.disabled,
   },
   submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    ...Typography.styles.button,
+    color: Colors.primary.contrast,
   },
 });

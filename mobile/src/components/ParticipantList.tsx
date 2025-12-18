@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  Animated,
 } from 'react-native';
 import { Participant } from '../models/Participant';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
+import { AnimationDuration, AnimationEasing } from '../constants/Animations';
+import AnimatedParticipantItem from './AnimatedParticipantItem';
 
 interface ParticipantListProps {
   participants: Participant[];
@@ -76,57 +79,16 @@ export default function ParticipantList({
   /**
    * 참가자 항목 렌더링
    */
-  const renderParticipantItem = ({ item }: { item: Participant }) => (
-    <TouchableOpacity
-      style={[styles.participantItem, !item.isActive && styles.participantItemInactive]}
+  const renderParticipantItem = ({ item, index }: { item: Participant; index: number }) => (
+    <AnimatedParticipantItem
+      participant={item}
+      index={index}
       onPress={() => onPress && onPress(item)}
       onLongPress={() => handleToggleActive(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.participantInfo}>
-        {/* 활성 상태 표시 */}
-        <View style={[styles.statusDot, { backgroundColor: item.isActive ? Colors.status.success : Colors.text.hint }]} />
-
-        <View style={styles.participantDetails}>
-          <Text style={[styles.participantName, !item.isActive && styles.participantNameInactive]}>
-            {item.name}
-          </Text>
-          <Text style={styles.participantDate}>
-            {new Date(item.joinedAt).toLocaleDateString('ko-KR')} 참가
-          </Text>
-        </View>
-      </View>
-
-      {/* 액션 버튼 */}
-      <View style={styles.actionButtons}>
-        {onEdit && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => onEdit(item)}
-          >
-            <Text style={styles.actionButtonText}>수정</Text>
-          </TouchableOpacity>
-        )}
-        {onToggleActive && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => handleToggleActive(item)}
-          >
-            <Text style={styles.actionButtonText}>
-              {item.isActive ? '비활성화' : '활성화'}
-            </Text>
-          </TouchableOpacity>
-        )}
-        {onDelete && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDelete(item)}
-          >
-            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>삭제</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
+      onEdit={onEdit ? () => onEdit(item) : undefined}
+      onToggleActive={onToggleActive ? () => handleToggleActive(item) : undefined}
+      onDelete={onDelete ? () => handleDelete(item) : undefined}
+    />
   );
 
   /**

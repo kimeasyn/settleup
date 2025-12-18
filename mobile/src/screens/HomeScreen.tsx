@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Settlement, SettlementStatus, SettlementType } from '../models/Settlement';
 import { getAllSettlements } from '../services/storage/settlementStorage';
 import { getSettlements } from '../services/api/settlementService';
+import AnimatedButton from '../components/AnimatedButton';
 
 /**
  * HomeScreen
@@ -240,13 +241,17 @@ export default function HomeScreen() {
       />
 
       {/* 새 정산 추가 버튼 */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={handleAddSettlement}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+      <View style={styles.fabContainer}>
+        <AnimatedButton
+          title="+"
+          onPress={handleAddSettlement}
+          variant="primary"
+          size="large"
+          feedbackType="pulse"
+          style={styles.fab}
+          textStyle={styles.fabText}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -361,10 +366,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#BDBDBD',
   },
-  fab: {
+  fabContainer: {
     position: 'absolute',
     right: 20,
     bottom: 20,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -376,6 +383,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+    minHeight: 56,
   },
   fabText: {
     fontSize: 32,

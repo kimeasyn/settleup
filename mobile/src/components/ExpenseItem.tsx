@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Animated,
 } from 'react-native';
 import { Expense, ExpenseWithDetails } from '../models/Expense';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
+import { ListItemAnimation, AnimationDuration, AnimationEasing } from '../constants/Animations';
+import AnimatedButton from './AnimatedButton';
 
 interface ExpenseItemProps {
   expense: ExpenseWithDetails;
@@ -33,6 +36,35 @@ export default function ExpenseItem({
   onSetSplits,
 }: ExpenseItemProps) {
   const [expanded, setExpanded] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const expandAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: AnimationDuration.normal,
+        easing: AnimationEasing.easeOut,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: AnimationDuration.normal,
+        easing: AnimationEasing.easeOut,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  useEffect(() => {
+    Animated.timing(expandAnim, {
+      toValue: expanded ? 1 : 0,
+      duration: AnimationDuration.normal,
+      easing: AnimationEasing.easeInOut,
+      useNativeDriver: false,
+    }).start();
+  }, [expanded]);
 
   /**
    * 금액 포맷팅
@@ -110,11 +142,20 @@ export default function ExpenseItem({
   };
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={handleToggle}
-      activeOpacity={0.7}
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
     >
+      <TouchableOpacity
+        style={styles.touchable}
+        onPress={handleToggle}
+        activeOpacity={0.7}
+      >
       {/* 메인 정보 */}
       <View style={styles.mainInfo}>
         {/* 왼쪽: 설명 및 카테고리 */}
@@ -146,9 +187,20 @@ export default function ExpenseItem({
       </View>
 
       {/* 확장된 상세 정보 */}
-      {expanded && (
-        <View style={styles.expandedSection}>
-          <View style={styles.divider} />
+      <Animated.View
+        style={[
+          styles.expandedSection,
+          {
+            maxHeight: expandAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 300],
+            }),
+            opacity: expandAnim,
+          },
+        ]}
+        pointerEvents={expanded ? 'auto' : 'none'}
+      >
+        <View style={styles.divider} />
 
           {/* 분담 내역 */}
           {expense.splits && expense.splits.length > 0 && (
@@ -176,43 +228,54 @@ export default function ExpenseItem({
           {(onSetSplits || onEdit || onDelete) && (
             <View style={styles.actionButtons}>
               {onSetSplits && (
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.splitButton]}
+                <AnimatedButton
+                  title="분담설정"
                   onPress={() => onSetSplits(expense)}
-                >
-                  <Text style={styles.splitButtonText}>분담설정</Text>
-                </TouchableOpacity>
+                  variant="success"
+                  size="small"
+                  feedbackType="scale"
+                  style={[styles.actionButton, styles.splitButton]}
+                  textStyle={styles.splitButtonText}
+                />
               )}
               {onEdit && (
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.editButton]}
+                <AnimatedButton
+                  title="수정"
                   onPress={() => onEdit(expense)}
-                >
-                  <Text style={styles.editButtonText}>수정</Text>
-                </TouchableOpacity>
+                  variant="secondary"
+                  size="small"
+                  feedbackType="scale"
+                  style={[styles.actionButton, styles.editButton]}
+                  textStyle={styles.editButtonText}
+                />
               )}
               {onDelete && (
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.deleteButton]}
+                <AnimatedButton
+                  title="삭제"
                   onPress={handleDelete}
-                >
-                  <Text style={styles.deleteButtonText}>삭제</Text>
-                </TouchableOpacity>
+                  variant="danger"
+                  size="small"
+                  feedbackType="shake"
+                  style={[styles.actionButton, styles.deleteButton]}
+                  textStyle={styles.deleteButtonText}
+                />
               )}
             </View>
           )}
-        </View>
-      )}
-    </TouchableOpacity>
+      </Animated.View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    marginBottom: Spacing.component.list,
+  },
+  touchable: {
     backgroundColor: Colors.background.paper,
     borderRadius: Spacing.radius.lg,
     padding: Spacing.component.card,
-    marginBottom: Spacing.component.list,
     ...createShadowStyle('sm'),
   },
   mainInfo: {
@@ -270,6 +333,7 @@ const styles = StyleSheet.create({
   },
   expandedSection: {
     marginTop: Spacing.spacing.lg,
+    overflow: 'hidden',
   },
   divider: {
     height: 1,

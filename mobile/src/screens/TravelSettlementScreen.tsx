@@ -22,6 +22,7 @@ import EditParticipantModal from '../components/EditParticipantModal';
 import RemainderHandlingModal from '../components/RemainderHandlingModal';
 import ParticipantBalanceSummary from '../components/ParticipantBalanceSummary';
 import EditSettlementModal from '../components/EditSettlementModal';
+import AnimatedButton from '../components/AnimatedButton';
 import {
   getSettlement,
   getParticipants,
@@ -469,12 +470,15 @@ export default function TravelSettlementScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>참가자</Text>
-            <TouchableOpacity
-              style={styles.addButton}
+            <AnimatedButton
+              title="+ 추가"
               onPress={() => setAddParticipantModalVisible(true)}
-            >
-              <Text style={styles.addButtonText}>+ 추가</Text>
-            </TouchableOpacity>
+              variant="primary"
+              size="small"
+              feedbackType="scale"
+              style={styles.addButton}
+              textStyle={styles.addButtonText}
+            />
           </View>
           <ParticipantList
             participants={participants}
@@ -488,12 +492,15 @@ export default function TravelSettlementScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>지출 내역</Text>
-            <TouchableOpacity
-              style={styles.addButton}
+            <AnimatedButton
+              title="+ 추가"
               onPress={() => setAddExpenseModalVisible(true)}
-            >
-              <Text style={styles.addButtonText}>+ 추가</Text>
-            </TouchableOpacity>
+              variant="primary"
+              size="small"
+              feedbackType="scale"
+              style={styles.addButton}
+              textStyle={styles.addButtonText}
+            />
           </View>
           {expenses.length === 0 ? (
             <View style={styles.emptyExpenses}>

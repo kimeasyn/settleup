@@ -13,6 +13,10 @@ import {
 } from 'react-native';
 import { Participant } from '../models/Participant';
 import { CreateExpenseRequest, CreateExpenseSplitRequest } from '../models/Expense';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
+import AnimatedButton from './AnimatedButton';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -241,26 +245,30 @@ export default function AddExpenseModal({
 
           {/* 버튼 */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
+            <AnimatedButton
+              title="취소"
               onPress={handleClose}
               disabled={submitting}
-            >
-              <Text style={styles.cancelButtonText}>취소</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+              variant="secondary"
+              size="medium"
+              feedbackType="scale"
+              style={[styles.button, styles.cancelButton]}
+              textStyle={styles.cancelButtonText}
+            />
+            <AnimatedButton
+              title={submitting ? '추가 중...' : '추가'}
+              onPress={handleSubmit}
+              disabled={submitting}
+              variant="primary"
+              size="medium"
+              feedbackType="pulse"
               style={[
                 styles.button,
                 styles.submitButton,
                 submitting && styles.submitButtonDisabled,
               ]}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              <Text style={styles.submitButtonText}>
-                {submitting ? '추가 중...' : '추가'}
-              </Text>
-            </TouchableOpacity>
+              textStyle={styles.submitButtonText}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>

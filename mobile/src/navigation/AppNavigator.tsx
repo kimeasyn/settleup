@@ -6,6 +6,7 @@ import TravelSettlementScreen from '../screens/TravelSettlementScreen';
 import CreateSettlementScreen from '../screens/CreateSettlementScreen';
 import SettlementResultScreen from '../screens/SettlementResultScreen';
 import SettlementHistoryScreen from '../screens/SettlementHistoryScreen';
+import { ScreenTransitions } from '../constants/Animations';
 
 /**
  * Navigation 구조
@@ -36,6 +37,7 @@ const HomeStack = () => (
       headerTitleStyle: {
         fontWeight: '600',
       },
+      ...ScreenTransitions.slideFromRight,
     }}
   >
     <Stack.Screen
@@ -58,6 +60,7 @@ const HomeStack = () => (
       component={CreateSettlementScreen}
       options={{
         title: '정산 생성',
+        ...ScreenTransitions.slideFromBottom,
       }}
     />
     <Stack.Screen
@@ -83,6 +86,7 @@ const HistoryStack = () => (
       headerTitleStyle: {
         fontWeight: '600',
       },
+      ...ScreenTransitions.slideFromRight,
     }}
   >
     <Stack.Screen

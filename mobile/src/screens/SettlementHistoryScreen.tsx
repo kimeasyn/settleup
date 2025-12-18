@@ -12,6 +12,9 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Settlement, SettlementStatus, SettlementType } from '../models/Settlement';
 import { getSettlements, searchSettlements } from '../services/api/settlementService';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 /**
  * SettlementHistoryScreen
@@ -145,13 +148,13 @@ export default function SettlementHistoryScreen() {
   const getStatusColor = (status: SettlementStatus): string => {
     switch (status) {
       case SettlementStatus.ACTIVE:
-        return '#4CAF50';
+        return Colors.semantic.settlement.active;
       case SettlementStatus.COMPLETED:
-        return '#2196F3';
+        return Colors.semantic.settlement.completed;
       case SettlementStatus.ARCHIVED:
-        return '#9E9E9E';
+        return Colors.semantic.settlement.archived;
       default:
-        return '#757575';
+        return Colors.text.secondary;
     }
   };
 
@@ -377,135 +380,129 @@ export default function SettlementHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.background.default,
   },
   listContainer: {
     flexGrow: 1,
   },
   listHeader: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    padding: Spacing.spacing.lg,
+    backgroundColor: Colors.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: Colors.border.light,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 16,
+    backgroundColor: Colors.background.default,
+    borderRadius: Spacing.radius.lg,
+    paddingHorizontal: Spacing.spacing.lg,
+    marginBottom: Spacing.spacing.lg,
   },
   searchIcon: {
-    fontSize: 18,
-    marginRight: 8,
+    fontSize: Typography.fontSize.lg,
+    marginRight: Spacing.spacing.sm,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#212121',
+    paddingVertical: Spacing.spacing.lg,
+    ...Typography.styles.body1,
+    color: Colors.text.primary,
   },
   clearButton: {
-    padding: 4,
+    padding: Spacing.spacing.xs,
   },
   clearButtonText: {
-    fontSize: 18,
-    color: '#9E9E9E',
+    fontSize: Typography.fontSize.lg,
+    color: Colors.text.hint,
   },
   filterSection: {
-    marginBottom: 16,
+    marginBottom: Spacing.spacing.lg,
   },
   filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#757575',
-    marginBottom: 8,
+    ...Typography.styles.label,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.spacing.sm,
   },
   filterButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: Spacing.spacing.sm,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    paddingHorizontal: Spacing.spacing.lg,
+    paddingVertical: Spacing.spacing.sm,
+    borderRadius: Spacing.radius['2xl'],
+    backgroundColor: Colors.background.default,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.border.light,
   },
   filterButtonActive: {
-    backgroundColor: '#2196F3',
-    borderColor: '#2196F3',
+    backgroundColor: Colors.primary.main,
+    borderColor: Colors.primary.main,
   },
   filterButtonText: {
-    fontSize: 13,
-    color: '#757575',
-    fontWeight: '500',
+    ...Typography.styles.buttonSmall,
+    color: Colors.text.secondary,
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: Colors.primary.contrast,
   },
   resultCount: {
-    fontSize: 13,
-    color: '#9E9E9E',
-    marginTop: 8,
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginTop: Spacing.spacing.sm,
   },
   settlementCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 6,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.component.card,
+    marginHorizontal: Spacing.container.md,
+    marginVertical: Spacing.spacing.sm,
+    ...createShadowStyle('sm'),
   },
   cardHeader: {
-    marginBottom: 8,
+    marginBottom: Spacing.spacing.sm,
   },
   titleContainer: {
     flex: 1,
   },
   settlementTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 8,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.spacing.sm,
   },
   badges: {
     flexDirection: 'row',
-    gap: 8,
+    gap: Spacing.spacing.sm,
   },
   typeBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#E8F5E9',
+    borderRadius: Spacing.radius.lg,
+    backgroundColor: Colors.action.success,
   },
   typeBadgeText: {
-    fontSize: 11,
-    color: '#2E7D32',
-    fontWeight: '600',
+    ...Typography.styles.overline,
+    color: Colors.status.success,
+    textTransform: 'none',
   },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: Spacing.radius.lg,
   },
   statusText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    ...Typography.styles.overline,
+    color: Colors.text.inverse,
+    textTransform: 'none',
   },
   settlementDescription: {
-    fontSize: 14,
-    color: '#616161',
-    marginBottom: 12,
-    lineHeight: 20,
+    ...Typography.styles.body2,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.spacing.lg,
+    lineHeight: Typography.lineHeight.normal * Typography.fontSize.base,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -513,31 +510,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateText: {
-    fontSize: 12,
-    color: '#9E9E9E',
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
   },
   currencyText: {
-    fontSize: 12,
-    color: '#757575',
-    fontWeight: '500',
+    ...Typography.styles.caption,
+    color: Colors.text.secondary,
+    fontWeight: Typography.fontWeight.medium,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 80,
+    paddingVertical: Spacing.spacing['5xl'],
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: Spacing.spacing.lg,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#9E9E9E',
-    marginBottom: 8,
+    ...Typography.styles.body1,
+    color: Colors.text.hint,
+    marginBottom: Spacing.spacing.sm,
   },
   emptySubText: {
-    fontSize: 14,
-    color: '#BDBDBD',
+    ...Typography.styles.body2,
+    color: Colors.text.disabled,
   },
 });
