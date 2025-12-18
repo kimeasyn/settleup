@@ -521,13 +521,26 @@ export default function TravelSettlementScreen() {
           )}
         </View>
 
-        {/* 정산 결과 버튼 */}
-        <TouchableOpacity
-          style={styles.calculateButton}
-          onPress={handleViewSettlementResult}
-        >
-          <Text style={styles.calculateButtonText}>정산 결과 보기</Text>
-        </TouchableOpacity>
+        {/* 정산 및 게임 버튼 */}
+        <View style={styles.actionButtonsContainer}>
+          <AnimatedButton
+            title="🎮 게임 정산"
+            onPress={() => navigation.navigate('GameSettlement', { settlementId })}
+            variant="secondary"
+            size="medium"
+            feedbackType="scale"
+            style={styles.gameButton}
+          />
+
+          <AnimatedButton
+            title="✈️ 여행 정산 결과"
+            onPress={handleViewSettlementResult}
+            variant="primary"
+            size="medium"
+            feedbackType="pulse"
+            style={styles.travelResultButton}
+          />
+        </View>
       </ScrollView>
 
       {/* 참가자 추가 모달 */}
@@ -754,21 +767,17 @@ const styles = StyleSheet.create({
     ...Typography.styles.body2,
     color: Colors.text.disabled,
   },
-  calculateButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    margin: Spacing.spacing.lg,
+    gap: Spacing.spacing.md,
   },
-  calculateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  gameButton: {
+    flex: 1,
+    backgroundColor: '#8E44AD',
+  },
+  travelResultButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
   },
 });

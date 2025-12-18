@@ -6,6 +6,8 @@ import TravelSettlementScreen from '../screens/TravelSettlementScreen';
 import CreateSettlementScreen from '../screens/CreateSettlementScreen';
 import SettlementResultScreen from '../screens/SettlementResultScreen';
 import SettlementHistoryScreen from '../screens/SettlementHistoryScreen';
+import GameSettlementScreen from '../screens/GameSettlementScreen';
+import GameSettlementResultScreen from '../screens/GameSettlementResultScreen';
 import { ScreenTransitions } from '../constants/Animations';
 
 /**
@@ -19,6 +21,8 @@ export type RootStackParamList = {
   TravelSettlement: { settlementId: string };
   CreateSettlement: undefined;
   SettlementResult: { settlementId: string };
+  GameSettlement: { settlementId: string };
+  GameSettlementResult: { settlementId: string; gameResult: any };
 };
 
 const Tab = createBottomTabNavigator();
@@ -68,6 +72,20 @@ const HomeStack = () => (
       component={SettlementResultScreen}
       options={{
         title: '정산 결과',
+      }}
+    />
+    <Stack.Screen
+      name="GameSettlement"
+      component={GameSettlementScreen}
+      options={{
+        title: '게임 정산',
+      }}
+    />
+    <Stack.Screen
+      name="GameSettlementResult"
+      component={GameSettlementResultScreen}
+      options={{
+        title: '게임 정산 결과',
       }}
     />
   </Stack.Navigator>
