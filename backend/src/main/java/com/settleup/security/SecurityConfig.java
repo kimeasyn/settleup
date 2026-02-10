@@ -34,8 +34,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints - 인증 불필요
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/v1/dev/**").permitAll() // Dev endpoints
+                // context-path가 /api/v1이므로 Security 매칭은 context-path 이후 경로 사용
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/dev/**").permitAll() // Dev endpoints
 
                 // Swagger/OpenAPI endpoints
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
@@ -45,9 +46,9 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
 
                 // 기존 API들 - 점진적으로 인증 적용 예정
-                .requestMatchers("/api/v1/settlements/**").permitAll()
-                .requestMatchers("/api/v1/participants/**").permitAll()
-                .requestMatchers("/api/v1/expenses/**").permitAll()
+                .requestMatchers("/settlements/**").permitAll()
+                .requestMatchers("/participants/**").permitAll()
+                .requestMatchers("/expenses/**").permitAll()
 
                 // 모든 나머지 요청은 인증 필요
                 .anyRequest().authenticated()

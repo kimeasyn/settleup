@@ -1,7 +1,9 @@
 package com.settleup.controller.dev;
 
+import com.settleup.domain.user.RefreshToken;
 import com.settleup.domain.user.User;
 import com.settleup.dto.auth.TokenResponse;
+import com.settleup.repository.RefreshTokenRepository;
 import com.settleup.repository.UserRepository;
 import com.settleup.security.JwtTokenProvider;
 import com.settleup.security.JwtProperties;
@@ -12,16 +14,18 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/dev")
+@RequestMapping("/dev")
 @RequiredArgsConstructor
 @Profile("dev")
 @Tag(name = "Development", description = "개발용 편의 API (dev 프로필에서만 사용 가능)")
 public class DevController {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
 
@@ -34,11 +38,19 @@ public class DevController {
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         String accessToken = jwtTokenProvider.createAccessToken(user);
-        String refreshToken = jwtTokenProvider.createRefreshToken(user);
+        String refreshTokenValue = jwtTokenProvider.createRefreshToken(user);
+
+        // Refresh token을 DB에 저장 (토큰 갱신 테스트 가능하도록)
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(user)
+                .token(refreshTokenValue)
+                .expiresAt(LocalDateTime.now().plusSeconds(jwtProperties.getRefreshTokenExpiry() / 1000))
+                .build();
+        refreshTokenRepository.save(refreshToken);
 
         TokenResponse response = TokenResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
+                .refreshToken(refreshTokenValue)
                 .accessTokenExpiresIn(jwtProperties.getAccessTokenExpiry())
                 .userId(user.getId())
                 .userName(user.getName())

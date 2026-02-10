@@ -36,6 +36,7 @@ public class SettlementCreateRequest {
 
     private LocalDate endDate;
 
+    @Builder.Default
     @Size(min = 3, max = 3, message = "통화 코드는 3글자여야 합니다")
     @Pattern(regexp = "^[A-Z]{3}$", message = "통화 코드는 3글자 대문자여야 합니다 (예: KRW, USD, EUR)")
     @Schema(description = "통화 코드 (ISO 4217)", example = "KRW", defaultValue = "KRW")
