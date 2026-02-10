@@ -39,6 +39,19 @@ server:
   servlet:
     context-path: /api/v1
 
+# OAuth 설정
+oauth:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY:your-kakao-rest-api-key}
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:your-jwt-secret-must-be-at-least-32-characters-long}
+  access-token-expiry: 1800000   # 30분 (milliseconds)
+  refresh-token-expiry: 1209600000  # 14일 (milliseconds)
+
 logging:
   level:
     root: INFO
