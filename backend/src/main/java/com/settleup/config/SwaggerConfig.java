@@ -1,9 +1,12 @@
 package com.settleup.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,13 +64,30 @@ public class SwaggerConfig {
                         - Docker
 
                         ### 인증
-                        현재는 개발 단계로 인증이 비활성화되어 있습니다.
-                        향후 JWT 기반 인증이 추가될 예정입니다.
+                        - Google/Kakao 소셜 로그인 지원
+                        - JWT 기반 Access Token + Refresh Token
+                        - dev 프로필에서 테스트 편의 기능 제공
+
+                        ### 개발 모드 테스트 방법
+                        1. **JWT 토큰 방식**:
+                           - `POST /api/v1/dev/token?userId={uuid}`로 테스트 토큰 발급
+                           - 상단 'Authorize' 버튼으로 Bearer 토큰 설정
+                        2. **헤더 인증 우회**:
+                           - `X-Dev-User-Id: {userId}` 헤더 추가로 JWT 없이 테스트
                         """)
                 .contact(contact)
                 .license(license);
 
+        String securitySchemeName = "JWT";
+
         return new OpenAPI()
+                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
+                .components(new Components()
+                        .addSecuritySchemes(securitySchemeName, new SecurityScheme()
+                                .name(securitySchemeName)
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")))
                 .info(info)
                 .servers(List.of(localServer, prodServer));
     }
