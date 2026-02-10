@@ -194,8 +194,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.spacing.xl,
   },
   title: {
-    ...Typography.styles.h3,
-    color: Colors.text.primary,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: '#212121',
   },
   closeButton: {
     width: 32,
@@ -215,8 +216,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.spacing.lg,
   },
   label: {
-    ...Typography.styles.label,
-    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: '#616161',
     marginBottom: Spacing.spacing.sm,
   },
   input: {
@@ -224,13 +226,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.border.light,
     borderRadius: Spacing.radius.sm,
     padding: Spacing.spacing.lg,
-    ...Typography.styles.body1,
-    color: Colors.text.primary,
+    fontSize: Typography.fontSize.md,
+    color: '#212121',
     backgroundColor: Colors.background.elevated,
   },
   hint: {
-    ...Typography.styles.caption,
-    color: Colors.text.hint,
+    fontSize: Typography.fontSize.xs,
+    color: '#9E9E9E',
     marginTop: Spacing.spacing.xs,
     textAlign: 'right',
   },
@@ -248,8 +250,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.disabled,
   },
   cancelButtonText: {
-    ...Typography.styles.button,
-    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
+    color: '#757575',
   },
   submitButton: {
     backgroundColor: Colors.primary.main,
@@ -258,7 +261,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.text.disabled,
   },
   submitButtonText: {
-    ...Typography.styles.button,
-    color: Colors.primary.contrast,
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
+    color: '#FFFFFF',
   },
 });

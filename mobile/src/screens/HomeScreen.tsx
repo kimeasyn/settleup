@@ -97,7 +97,11 @@ export default function HomeScreen() {
    * 정산 항목 클릭
    */
   const handleSettlementPress = (settlement: Settlement) => {
-    navigation.navigate('TravelSettlement', { settlementId: settlement.id });
+    if (settlement.type === SettlementType.GAME) {
+      navigation.navigate('GameSettlement', { settlementId: settlement.id });
+    } else {
+      navigation.navigate('TravelSettlement', { settlementId: settlement.id });
+    }
   };
 
   /**
