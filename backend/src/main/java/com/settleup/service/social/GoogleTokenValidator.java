@@ -8,14 +8,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import java.util.Arrays;
 
 @Slf4j
 @Service
 public class GoogleTokenValidator implements SocialTokenValidator {
 
-    @Value("${oauth.google.client-id}")
-    private String clientId;
+    @Value("${oauth.google.client-id-ios}")
+    private String clientIdIos;
+
+    @Value("${oauth.google.client-id-android}")
+    private String clientIdAndroid;
 
     private GoogleIdTokenVerifier verifier;
 
@@ -24,7 +27,7 @@ public class GoogleTokenValidator implements SocialTokenValidator {
             verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(),
                     GsonFactory.getDefaultInstance())
-                    .setAudience(Collections.singletonList(clientId))
+                    .setAudience(Arrays.asList(clientIdIos, clientIdAndroid))
                     .build();
         }
         return verifier;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
@@ -8,11 +9,15 @@ import SettlementResultScreen from '../screens/SettlementResultScreen';
 import SettlementHistoryScreen from '../screens/SettlementHistoryScreen';
 import GameSettlementScreen from '../screens/GameSettlementScreen';
 import GameSettlementResultScreen from '../screens/GameSettlementResultScreen';
+import LoginScreen from '../screens/LoginScreen';
 import { ScreenTransitions } from '../constants/Animations';
+import { Colors } from '../constants/Colors';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Navigation 구조
- * Bottom Tabs: 홈, 히스토리
+ * Auth Stack: 로그인 화면
+ * Main Tabs: 홈, 히스토리
  * Stack: 각 탭 내부의 화면 스택
  */
 
@@ -25,8 +30,22 @@ export type RootStackParamList = {
   GameSettlementResult: { settlementId: string; gameResult: any };
 };
 
+export type AuthStackParamList = {
+  Login: undefined;
+};
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator<RootStackParamList>();
+const AuthStackNav = createStackNavigator<AuthStackParamList>();
+
+/**
+ * Auth Stack Navigator
+ */
+const AuthStack = () => (
+  <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
+    <AuthStackNav.Screen name="Login" component={LoginScreen} />
+  </AuthStackNav.Navigator>
+);
 
 /**
  * Home Stack Navigator
@@ -116,33 +135,55 @@ const HistoryStack = () => (
 );
 
 /**
- * Main App Navigator with Bottom Tabs
+ * Main Tab Navigator
+ */
+const MainTabs = () => (
+  <Tab.Navigator
+    screenOptions={{
+      headerShown: false,
+      tabBarActiveTintColor: '#2196F3',
+      tabBarInactiveTintColor: '#8E8E93',
+    }}
+  >
+    <Tab.Screen
+      name="HomeTab"
+      component={HomeStack}
+      options={{
+        tabBarLabel: '홈',
+      }}
+    />
+    <Tab.Screen
+      name="History"
+      component={HistoryStack}
+      options={{
+        tabBarLabel: '히스토리',
+      }}
+    />
+  </Tab.Navigator>
+);
+
+/**
+ * App Navigator - 인증 상태에 따른 분기
  */
 export const AppNavigator = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#2196F3',
-        tabBarInactiveTintColor: '#8E8E93',
-      }}
-    >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeStack}
-        options={{
-          tabBarLabel: '홈',
-          // TODO: Add icon
-        }}
-      />
-      <Tab.Screen
-        name="History"
-        component={HistoryStack}
-        options={{
-          tabBarLabel: '히스토리',
-          // TODO: Add icon
-        }}
-      />
-    </Tab.Navigator>
-  );
+  const { isLoading, isLoggedIn } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={styles.splashContainer}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+
+  return isLoggedIn ? <MainTabs /> : <AuthStack />;
 };
+
+const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background.default,
+  },
+});

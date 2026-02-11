@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { initializeDatabase } from './src/services/storage/database';
 
 /**
@@ -50,9 +51,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" backgroundColor="#FFFFFF" />
-      <NavigationContainer>
-        <AppNavigator />
-      </NavigationContainer>
+      <AuthProvider>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

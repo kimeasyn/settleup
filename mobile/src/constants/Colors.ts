@@ -81,6 +81,19 @@ export const Colors = {
     disabled: '#F5F5F5',  // 비활성화 액션
   },
 
+  // Social Login Colors (소셜 로그인 색상)
+  social: {
+    kakao: {
+      background: '#FEE500',
+      text: '#191919',
+    },
+    google: {
+      background: '#FFFFFF',
+      text: '#757575',
+      border: '#DADCE0',
+    },
+  },
+
   // Shadow Colors (그림자 색상)
   shadow: {
     light: 'rgba(0, 0, 0, 0.1)',   // 연한 그림자

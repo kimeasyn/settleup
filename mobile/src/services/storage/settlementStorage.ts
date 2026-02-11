@@ -3,14 +3,13 @@
  * SQLite를 활용한 오프라인 데이터 저장 및 조회
  */
 
-import { executeSql } from './database';
+import { executeSql, runSql } from './database';
 import { Settlement, SettlementType, SettlementStatus } from '../../models/Settlement';
 import { Participant } from '../../models/Participant';
 import { Expense, ExpenseSplit } from '../../models/Expense';
 
 /**
  * 정산 저장
- * @param settlement 정산 데이터
  */
 export const saveSettlement = async (settlement: Settlement): Promise<void> => {
   try {
@@ -35,8 +34,8 @@ export const saveSettlement = async (settlement: Settlement): Promise<void> => {
       settlement.updatedAt,
     ];
 
-    await executeSql(sql, params);
-    console.log(`✅ Settlement saved: ${settlement.id}`);
+    await runSql(sql, params);
+    console.log(`Settlement saved: ${settlement.id}`);
   } catch (error) {
     console.error('[saveSettlement] Error:', error);
     throw error;
@@ -45,22 +44,18 @@ export const saveSettlement = async (settlement: Settlement): Promise<void> => {
 
 /**
  * 정산 ID로 조회
- * @param id 정산 ID
- * @returns 정산 데이터 또는 null
  */
 export const getSettlementById = async (
   id: string
 ): Promise<Settlement | null> => {
   try {
-    const sql = 'SELECT * FROM settlements WHERE id = ?';
-    const result = await executeSql(sql, [id]);
+    const rows = await executeSql('SELECT * FROM settlements WHERE id = ?', [id]);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return null;
     }
 
-    const row = result.rows.item(0);
-    return mapRowToSettlement(row);
+    return mapRowToSettlement(rows[0]);
   } catch (error) {
     console.error('[getSettlementById] Error:', error);
     throw error;
@@ -69,20 +64,11 @@ export const getSettlementById = async (
 
 /**
  * 모든 정산 조회
- * @returns 정산 목록
  */
 export const getAllSettlements = async (): Promise<Settlement[]> => {
   try {
-    const sql = 'SELECT * FROM settlements ORDER BY created_at DESC';
-    const result = await executeSql(sql);
-
-    const settlements: Settlement[] = [];
-    for (let i = 0; i < result.rows.length; i++) {
-      const row = result.rows.item(i);
-      settlements.push(mapRowToSettlement(row));
-    }
-
-    return settlements;
+    const rows = await executeSql('SELECT * FROM settlements ORDER BY created_at DESC');
+    return rows.map(mapRowToSettlement);
   } catch (error) {
     console.error('[getAllSettlements] Error:', error);
     throw error;
@@ -91,20 +77,18 @@ export const getAllSettlements = async (): Promise<Settlement[]> => {
 
 /**
  * 정산 삭제
- * @param id 정산 ID
  */
 export const deleteSettlement = async (id: string): Promise<void> => {
   try {
-    // 관련된 지출 분담, 지출, 참가자도 함께 삭제 (Cascade)
-    await executeSql(
+    await runSql(
       'DELETE FROM expense_splits WHERE expense_id IN (SELECT id FROM expenses WHERE settlement_id = ?)',
       [id]
     );
-    await executeSql('DELETE FROM expenses WHERE settlement_id = ?', [id]);
-    await executeSql('DELETE FROM participants WHERE settlement_id = ?', [id]);
-    await executeSql('DELETE FROM settlements WHERE id = ?', [id]);
+    await runSql('DELETE FROM expenses WHERE settlement_id = ?', [id]);
+    await runSql('DELETE FROM participants WHERE settlement_id = ?', [id]);
+    await runSql('DELETE FROM settlements WHERE id = ?', [id]);
 
-    console.log(`✅ Settlement deleted: ${id}`);
+    console.log(`Settlement deleted: ${id}`);
   } catch (error) {
     console.error('[deleteSettlement] Error:', error);
     throw error;
@@ -113,7 +97,6 @@ export const deleteSettlement = async (id: string): Promise<void> => {
 
 /**
  * 참가자 저장
- * @param participant 참가자 데이터
  */
 export const saveParticipant = async (participant: Participant): Promise<void> => {
   try {
@@ -132,8 +115,8 @@ export const saveParticipant = async (participant: Participant): Promise<void> =
       participant.joinedAt,
     ];
 
-    await executeSql(sql, params);
-    console.log(`✅ Participant saved: ${participant.id}`);
+    await runSql(sql, params);
+    console.log(`Participant saved: ${participant.id}`);
   } catch (error) {
     console.error('[saveParticipant] Error:', error);
     throw error;
@@ -142,23 +125,16 @@ export const saveParticipant = async (participant: Participant): Promise<void> =
 
 /**
  * 정산 ID로 참가자 목록 조회
- * @param settlementId 정산 ID
- * @returns 참가자 목록
  */
 export const getParticipantsBySettlementId = async (
   settlementId: string
 ): Promise<Participant[]> => {
   try {
-    const sql = 'SELECT * FROM participants WHERE settlement_id = ? ORDER BY joined_at ASC';
-    const result = await executeSql(sql, [settlementId]);
-
-    const participants: Participant[] = [];
-    for (let i = 0; i < result.rows.length; i++) {
-      const row = result.rows.item(i);
-      participants.push(mapRowToParticipant(row));
-    }
-
-    return participants;
+    const rows = await executeSql(
+      'SELECT * FROM participants WHERE settlement_id = ? ORDER BY joined_at ASC',
+      [settlementId]
+    );
+    return rows.map(mapRowToParticipant);
   } catch (error) {
     console.error('[getParticipantsBySettlementId] Error:', error);
     throw error;
@@ -167,22 +143,18 @@ export const getParticipantsBySettlementId = async (
 
 /**
  * 참가자 ID로 조회
- * @param id 참가자 ID
- * @returns 참가자 데이터 또는 null
  */
 export const getParticipantById = async (
   id: string
 ): Promise<Participant | null> => {
   try {
-    const sql = 'SELECT * FROM participants WHERE id = ?';
-    const result = await executeSql(sql, [id]);
+    const rows = await executeSql('SELECT * FROM participants WHERE id = ?', [id]);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return null;
     }
 
-    const row = result.rows.item(0);
-    return mapRowToParticipant(row);
+    return mapRowToParticipant(rows[0]);
   } catch (error) {
     console.error('[getParticipantById] Error:', error);
     throw error;
@@ -191,12 +163,11 @@ export const getParticipantById = async (
 
 /**
  * 참가자 삭제
- * @param id 참가자 ID
  */
 export const deleteParticipant = async (id: string): Promise<void> => {
   try {
-    await executeSql('DELETE FROM participants WHERE id = ?', [id]);
-    console.log(`✅ Participant deleted: ${id}`);
+    await runSql('DELETE FROM participants WHERE id = ?', [id]);
+    console.log(`Participant deleted: ${id}`);
   } catch (error) {
     console.error('[deleteParticipant] Error:', error);
     throw error;
@@ -205,7 +176,6 @@ export const deleteParticipant = async (id: string): Promise<void> => {
 
 /**
  * 지출 저장
- * @param expense 지출 데이터
  */
 export const saveExpense = async (expense: Expense): Promise<void> => {
   try {
@@ -229,8 +199,8 @@ export const saveExpense = async (expense: Expense): Promise<void> => {
       expense.updatedAt,
     ];
 
-    await executeSql(sql, params);
-    console.log(`✅ Expense saved: ${expense.id}`);
+    await runSql(sql, params);
+    console.log(`Expense saved: ${expense.id}`);
   } catch (error) {
     console.error('[saveExpense] Error:', error);
     throw error;
@@ -239,23 +209,16 @@ export const saveExpense = async (expense: Expense): Promise<void> => {
 
 /**
  * 정산 ID로 지출 목록 조회
- * @param settlementId 정산 ID
- * @returns 지출 목록
  */
 export const getExpensesBySettlementId = async (
   settlementId: string
 ): Promise<Expense[]> => {
   try {
-    const sql = 'SELECT * FROM expenses WHERE settlement_id = ? ORDER BY expense_date DESC';
-    const result = await executeSql(sql, [settlementId]);
-
-    const expenses: Expense[] = [];
-    for (let i = 0; i < result.rows.length; i++) {
-      const row = result.rows.item(i);
-      expenses.push(mapRowToExpense(row));
-    }
-
-    return expenses;
+    const rows = await executeSql(
+      'SELECT * FROM expenses WHERE settlement_id = ? ORDER BY expense_date DESC',
+      [settlementId]
+    );
+    return rows.map(mapRowToExpense);
   } catch (error) {
     console.error('[getExpensesBySettlementId] Error:', error);
     throw error;
@@ -264,20 +227,16 @@ export const getExpensesBySettlementId = async (
 
 /**
  * 지출 ID로 조회
- * @param id 지출 ID
- * @returns 지출 데이터 또는 null
  */
 export const getExpenseById = async (id: string): Promise<Expense | null> => {
   try {
-    const sql = 'SELECT * FROM expenses WHERE id = ?';
-    const result = await executeSql(sql, [id]);
+    const rows = await executeSql('SELECT * FROM expenses WHERE id = ?', [id]);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return null;
     }
 
-    const row = result.rows.item(0);
-    return mapRowToExpense(row);
+    return mapRowToExpense(rows[0]);
   } catch (error) {
     console.error('[getExpenseById] Error:', error);
     throw error;
@@ -286,14 +245,12 @@ export const getExpenseById = async (id: string): Promise<Expense | null> => {
 
 /**
  * 지출 삭제
- * @param id 지출 ID
  */
 export const deleteExpense = async (id: string): Promise<void> => {
   try {
-    // 관련된 지출 분담도 함께 삭제
-    await executeSql('DELETE FROM expense_splits WHERE expense_id = ?', [id]);
-    await executeSql('DELETE FROM expenses WHERE id = ?', [id]);
-    console.log(`✅ Expense deleted: ${id}`);
+    await runSql('DELETE FROM expense_splits WHERE expense_id = ?', [id]);
+    await runSql('DELETE FROM expenses WHERE id = ?', [id]);
+    console.log(`Expense deleted: ${id}`);
   } catch (error) {
     console.error('[deleteExpense] Error:', error);
     throw error;
@@ -302,7 +259,6 @@ export const deleteExpense = async (id: string): Promise<void> => {
 
 /**
  * 지출 분담 저장
- * @param split 지출 분담 데이터
  */
 export const saveExpenseSplit = async (split: ExpenseSplit): Promise<void> => {
   try {
@@ -314,8 +270,8 @@ export const saveExpenseSplit = async (split: ExpenseSplit): Promise<void> => {
 
     const params = [split.id, split.expenseId, split.participantId, split.share];
 
-    await executeSql(sql, params);
-    console.log(`✅ ExpenseSplit saved: ${split.id}`);
+    await runSql(sql, params);
+    console.log(`ExpenseSplit saved: ${split.id}`);
   } catch (error) {
     console.error('[saveExpenseSplit] Error:', error);
     throw error;
@@ -324,23 +280,16 @@ export const saveExpenseSplit = async (split: ExpenseSplit): Promise<void> => {
 
 /**
  * 지출 ID로 분담 목록 조회
- * @param expenseId 지출 ID
- * @returns 지출 분담 목록
  */
 export const getExpenseSplitsByExpenseId = async (
   expenseId: string
 ): Promise<ExpenseSplit[]> => {
   try {
-    const sql = 'SELECT * FROM expense_splits WHERE expense_id = ?';
-    const result = await executeSql(sql, [expenseId]);
-
-    const splits: ExpenseSplit[] = [];
-    for (let i = 0; i < result.rows.length; i++) {
-      const row = result.rows.item(i);
-      splits.push(mapRowToExpenseSplit(row));
-    }
-
-    return splits;
+    const rows = await executeSql(
+      'SELECT * FROM expense_splits WHERE expense_id = ?',
+      [expenseId]
+    );
+    return rows.map(mapRowToExpenseSplit);
   } catch (error) {
     console.error('[getExpenseSplitsByExpenseId] Error:', error);
     throw error;
@@ -349,12 +298,11 @@ export const getExpenseSplitsByExpenseId = async (
 
 /**
  * 지출 분담 삭제
- * @param id 지출 분담 ID
  */
 export const deleteExpenseSplit = async (id: string): Promise<void> => {
   try {
-    await executeSql('DELETE FROM expense_splits WHERE id = ?', [id]);
-    console.log(`✅ ExpenseSplit deleted: ${id}`);
+    await runSql('DELETE FROM expense_splits WHERE id = ?', [id]);
+    console.log(`ExpenseSplit deleted: ${id}`);
   } catch (error) {
     console.error('[deleteExpenseSplit] Error:', error);
     throw error;
@@ -363,14 +311,13 @@ export const deleteExpenseSplit = async (id: string): Promise<void> => {
 
 /**
  * 지출 ID로 모든 분담 삭제
- * @param expenseId 지출 ID
  */
 export const deleteExpenseSplitsByExpenseId = async (
   expenseId: string
 ): Promise<void> => {
   try {
-    await executeSql('DELETE FROM expense_splits WHERE expense_id = ?', [expenseId]);
-    console.log(`✅ ExpenseSplits deleted for expense: ${expenseId}`);
+    await runSql('DELETE FROM expense_splits WHERE expense_id = ?', [expenseId]);
+    console.log(`ExpenseSplits deleted for expense: ${expenseId}`);
   } catch (error) {
     console.error('[deleteExpenseSplitsByExpenseId] Error:', error);
     throw error;
@@ -379,9 +326,6 @@ export const deleteExpenseSplitsByExpenseId = async (
 
 // ==================== 매핑 헬퍼 함수 ====================
 
-/**
- * DB Row를 Settlement 객체로 변환
- */
 const mapRowToSettlement = (row: any): Settlement => {
   return {
     id: row.id,
@@ -398,9 +342,6 @@ const mapRowToSettlement = (row: any): Settlement => {
   };
 };
 
-/**
- * DB Row를 Participant 객체로 변환
- */
 const mapRowToParticipant = (row: any): Participant => {
   return {
     id: row.id,
@@ -412,9 +353,6 @@ const mapRowToParticipant = (row: any): Participant => {
   };
 };
 
-/**
- * DB Row를 Expense 객체로 변환
- */
 const mapRowToExpense = (row: any): Expense => {
   return {
     id: row.id,
@@ -430,9 +368,6 @@ const mapRowToExpense = (row: any): Expense => {
   };
 };
 
-/**
- * DB Row를 ExpenseSplit 객체로 변환
- */
 const mapRowToExpenseSplit = (row: any): ExpenseSplit => {
   return {
     id: row.id,
@@ -442,9 +377,6 @@ const mapRowToExpenseSplit = (row: any): ExpenseSplit => {
   };
 };
 
-/**
- * SettlementStorage 객체 내보내기 (선택적 사용)
- */
 export const SettlementStorage = {
   saveSettlement,
   getSettlementById,
