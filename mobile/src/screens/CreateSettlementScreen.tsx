@@ -17,6 +17,9 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { SettlementType, CreateSettlementRequest } from '../models/Settlement';
 import { createSettlement } from '../services/api/settlementService';
 import { saveSettlement } from '../services/storage/settlementStorage';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 type CreateSettlementScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -200,7 +203,7 @@ const CreateSettlementScreen = () => {
         <View style={styles.section}>
           <Text style={styles.label}>통화</Text>
           <View style={styles.currencyDisplay}>
-            <Text style={styles.currencyText}>KRW (₩)</Text>
+            <Text style={styles.currencyText}>KRW (\u20A9)</Text>
           </View>
           <Text style={styles.helperText}>현재는 원화(KRW)만 지원됩니다</Text>
         </View>
@@ -212,7 +215,7 @@ const CreateSettlementScreen = () => {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={Colors.primary.contrast} />
           ) : (
             <Text style={styles.createButtonText}>정산 생성</Text>
           )}
@@ -225,102 +228,94 @@ const CreateSettlementScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: Colors.background.default,
   },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    padding: Spacing.spacing.xl,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: Spacing.spacing['2xl'],
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
+    ...Typography.styles.h5,
+    color: Colors.text.primary,
+    marginBottom: Spacing.spacing.sm,
   },
   typeButtonContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Spacing.spacing.md,
   },
   typeButton: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    padding: Spacing.spacing.lg,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
     borderWidth: 2,
-    borderColor: '#E5E5EA',
+    borderColor: Colors.border.light,
     alignItems: 'center',
   },
   typeButtonActive: {
-    borderColor: '#2196F3',
-    backgroundColor: '#E3F2FD',
+    borderColor: Colors.primary.main,
+    backgroundColor: Colors.action.secondary,
   },
   typeButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#8E8E93',
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.hint,
   },
   typeButtonTextActive: {
-    color: '#2196F3',
-    fontWeight: '600',
+    color: Colors.primary.main,
+    fontWeight: Typography.fontWeight.semibold,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.paper,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#000',
+    borderColor: Colors.border.light,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.lg,
+    ...Typography.styles.body1,
+    color: Colors.text.primary,
   },
   textArea: {
     height: 100,
-    paddingTop: 16,
+    paddingTop: Spacing.spacing.lg,
   },
   helperText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 4,
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginTop: Spacing.spacing.xs,
   },
   currencyDisplay: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: Colors.background.default,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 12,
-    padding: 16,
+    borderColor: Colors.border.light,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.lg,
   },
   currencyText: {
-    fontSize: 16,
-    color: '#8E8E93',
+    ...Typography.styles.body1,
+    color: Colors.text.hint,
   },
   createButton: {
-    backgroundColor: '#2196F3',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.primary.main,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.lg,
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#2196F3',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    marginTop: Spacing.spacing.sm,
+    ...createShadowStyle('sm'),
   },
   createButtonDisabled: {
-    backgroundColor: '#B0BEC5',
+    backgroundColor: Colors.text.disabled,
     shadowOpacity: 0,
     elevation: 0,
   },
   createButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '600',
+    color: Colors.primary.contrast,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });
 

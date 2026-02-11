@@ -12,6 +12,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Settlement, SettlementStatus, SettlementType } from '../models/Settlement';
 import { getSettlements, searchSettlements } from '../services/api/settlementService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
@@ -242,17 +243,23 @@ export default function SettlementHistoryScreen() {
   /**
    * 빈 목록 표시
    */
+  const isFiltered = searchQuery || selectedType !== 'ALL' || selectedStatus !== 'ALL';
+
   const renderEmptyList = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>📋</Text>
+      <MaterialCommunityIcons
+        name="clipboard-text-outline"
+        size={64}
+        color={Colors.text.disabled}
+      />
       <Text style={styles.emptyText}>
-        {searchQuery || selectedType !== 'ALL' || selectedStatus !== 'ALL'
+        {isFiltered
           ? '검색 결과가 없습니다'
           : '정산 내역이 없습니다'}
       </Text>
       <Text style={styles.emptySubText}>
-        {searchQuery || selectedType !== 'ALL' || selectedStatus !== 'ALL'
-          ? '다른 검색어나 필터를 사용해보세요'
+        {isFiltered
+          ? '다른 조건을 사용해보세요'
           : ''}
       </Text>
     </View>
@@ -524,13 +531,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.spacing['5xl'],
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: Spacing.spacing.lg,
-  },
   emptyText: {
     ...Typography.styles.body1,
     color: Colors.text.hint,
+    marginTop: Spacing.spacing.lg,
     marginBottom: Spacing.spacing.sm,
   },
   emptySubText: {

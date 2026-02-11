@@ -10,10 +10,47 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Settlement, SettlementStatus, SettlementType } from '../models/Settlement';
 import { getAllSettlements } from '../services/storage/settlementStorage';
-import { getSettlements } from '../services/api/settlementService';
+import { getSettlements, deleteSettlement } from '../services/api/settlementService';
 import AnimatedButton from '../components/AnimatedButton';
+import { useAuth } from '../contexts/AuthContext';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
+
+/**
+ * 타입 아이콘 반환
+ */
+const getTypeIcon = (type: SettlementType): keyof typeof MaterialCommunityIcons.glyphMap => {
+  switch (type) {
+    case SettlementType.TRAVEL:
+      return 'airplane';
+    case SettlementType.GAME:
+      return 'cards-playing-outline';
+    default:
+      return 'file-document-outline';
+  }
+};
+
+/**
+ * 상대시간 반환
+ */
+const getRelativeTime = (dateString?: string): string => {
+  if (!dateString) return '';
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return '오늘';
+  if (diffDays === 1) return '어제';
+  if (diffDays < 7) return `${diffDays}일 전`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}달 전`;
+  return `${Math.floor(diffDays / 365)}년 전`;
+};
 
 /**
  * HomeScreen
@@ -21,6 +58,8 @@ import AnimatedButton from '../components/AnimatedButton';
  */
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const { logout, user } = useAuth();
+  const [menuVisible, setMenuVisible] = useState(false);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [filteredSettlements, setFilteredSettlements] = useState<Settlement[]>([]);
   const [selectedType, setSelectedType] = useState<SettlementType | 'ALL'>('ALL');
@@ -104,6 +143,35 @@ export default function HomeScreen() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert('로그아웃', '정말 로그아웃하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      { text: '로그아웃', style: 'destructive', onPress: () => { setMenuVisible(false); logout(); } },
+    ]);
+  };
+
+  const handleDeleteSettlement = (settlement: Settlement) => {
+    Alert.alert(
+      '정산 삭제',
+      `"${settlement.title}"을(를) 삭제하시겠습니까?\n관련된 모든 데이터가 삭제됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSettlement(settlement.id);
+              await loadSettlements();
+            } catch (error) {
+              Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   /**
    * 새 정산 추가
    */
@@ -117,13 +185,13 @@ export default function HomeScreen() {
   const getStatusColor = (status: SettlementStatus): string => {
     switch (status) {
       case SettlementStatus.ACTIVE:
-        return '#4CAF50';
+        return Colors.semantic.settlement.active;
       case SettlementStatus.COMPLETED:
-        return '#2196F3';
+        return Colors.semantic.settlement.completed;
       case SettlementStatus.ARCHIVED:
-        return '#9E9E9E';
+        return Colors.semantic.settlement.archived;
       default:
-        return '#757575';
+        return Colors.text.secondary;
     }
   };
 
@@ -164,11 +232,20 @@ export default function HomeScreen() {
     <TouchableOpacity
       style={styles.settlementCard}
       onPress={() => handleSettlementPress(item)}
+      onLongPress={() => handleDeleteSettlement(item)}
       activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
         <View style={styles.titleContainer}>
-          <Text style={styles.settlementTitle}>{item.title}</Text>
+          <View style={styles.titleRow}>
+            <MaterialCommunityIcons
+              name={getTypeIcon(item.type)}
+              size={20}
+              color={Colors.primary.main}
+              style={styles.typeIcon}
+            />
+            <Text style={styles.settlementTitle} numberOfLines={1}>{item.title}</Text>
+          </View>
           <Text style={styles.settlementType}>{getTypeText(item.type)}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
@@ -187,7 +264,12 @@ export default function HomeScreen() {
           {item.startDate && new Date(item.startDate).toLocaleDateString('ko-KR')}
           {item.endDate && ` ~ ${new Date(item.endDate).toLocaleDateString('ko-KR')}`}
         </Text>
-        <Text style={styles.currencyText}>{item.currency}</Text>
+        <View style={styles.footerRight}>
+          <Text style={styles.relativeTime}>{getRelativeTime(item.updatedAt)}</Text>
+          <View style={styles.currencyBadge}>
+            <Text style={styles.currencyBadgeText}>{item.currency === 'KRW' ? '\u20A9' : item.currency}</Text>
+          </View>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -197,40 +279,81 @@ export default function HomeScreen() {
    */
   const renderEmptyList = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>정산 내역이 없습니다</Text>
-      <Text style={styles.emptySubText}>새 정산을 추가해보세요</Text>
+      <MaterialCommunityIcons
+        name="file-document-outline"
+        size={64}
+        color={Colors.text.disabled}
+      />
+      <Text style={styles.emptyText}>아직 정산이 없어요</Text>
+      <Text style={styles.emptySubText}>첫 정산을 시작해보세요</Text>
+      <TouchableOpacity style={styles.emptyCta} onPress={handleAddSettlement}>
+        <Text style={styles.emptyCtaText}>새 정산 추가</Text>
+      </TouchableOpacity>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 타입 필터 */}
+      {/* 타입 필터 + 메뉴 */}
       <View style={styles.filterContainer}>
+        <View style={styles.filterTabs}>
+          <TouchableOpacity
+            style={[styles.filterButton, selectedType === 'ALL' && styles.filterButtonActive]}
+            onPress={() => handleTypeFilter('ALL')}
+          >
+            <Text style={[styles.filterText, selectedType === 'ALL' && styles.filterTextActive]}>
+              전체
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, selectedType === SettlementType.TRAVEL && styles.filterButtonActive]}
+            onPress={() => handleTypeFilter(SettlementType.TRAVEL)}
+          >
+            <Text style={[styles.filterText, selectedType === SettlementType.TRAVEL && styles.filterTextActive]}>
+              여행
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, selectedType === SettlementType.GAME && styles.filterButtonActive]}
+            onPress={() => handleTypeFilter(SettlementType.GAME)}
+          >
+            <Text style={[styles.filterText, selectedType === SettlementType.GAME && styles.filterTextActive]}>
+              게임
+            </Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
-          style={[styles.filterButton, selectedType === 'ALL' && styles.filterButtonActive]}
-          onPress={() => handleTypeFilter('ALL')}
+          style={styles.menuButton}
+          onPress={() => setMenuVisible(!menuVisible)}
+          activeOpacity={0.6}
         >
-          <Text style={[styles.filterText, selectedType === 'ALL' && styles.filterTextActive]}>
-            전체
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, selectedType === SettlementType.TRAVEL && styles.filterButtonActive]}
-          onPress={() => handleTypeFilter(SettlementType.TRAVEL)}
-        >
-          <Text style={[styles.filterText, selectedType === SettlementType.TRAVEL && styles.filterTextActive]}>
-            여행
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, selectedType === SettlementType.GAME && styles.filterButtonActive]}
-          onPress={() => handleTypeFilter(SettlementType.GAME)}
-        >
-          <Text style={[styles.filterText, selectedType === SettlementType.GAME && styles.filterTextActive]}>
-            게임
-          </Text>
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
         </TouchableOpacity>
       </View>
+
+      {/* 드롭다운 메뉴 */}
+      {menuVisible && (
+        <>
+          <TouchableOpacity
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={() => setMenuVisible(false)}
+          />
+          <View style={styles.menuDropdown}>
+            {user && (
+              <View style={styles.menuUserInfo}>
+                <Text style={styles.menuUserName}>{user.name}</Text>
+                <Text style={styles.menuUserEmail}>{user.email}</Text>
+              </View>
+            )}
+            <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+              <Text style={styles.menuItemTextDestructive}>로그아웃</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       {/* 정산 목록 */}
       <FlatList
@@ -263,82 +386,143 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.background.default,
   },
   filterContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.spacing.lg,
+    backgroundColor: Colors.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: Colors.border.light,
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  menuButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4,
+  },
+  menuLine: {
+    width: 20,
+    height: 2,
+    backgroundColor: Colors.text.secondary,
+    borderRadius: 1,
+  },
+  menuOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
+  menuDropdown: {
+    position: 'absolute',
+    top: 108,
+    right: Spacing.spacing.lg,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    paddingVertical: Spacing.spacing.xs,
+    minWidth: 200,
+    ...createShadowStyle('lg'),
+    zIndex: 11,
+  },
+  menuUserInfo: {
+    paddingHorizontal: Spacing.spacing.lg,
+    paddingVertical: Spacing.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  menuUserName: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  menuUserEmail: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.hint,
+    marginTop: 2,
+  },
+  menuItem: {
+    paddingHorizontal: Spacing.spacing.lg,
+    paddingVertical: Spacing.spacing.lg,
+  },
+  menuItemTextDestructive: {
+    fontSize: Typography.fontSize.md,
+    color: Colors.status.error,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: '#F5F5F5',
+    paddingHorizontal: Spacing.spacing.lg,
+    paddingVertical: Spacing.spacing.sm,
+    borderRadius: Spacing.radius['2xl'],
+    marginRight: Spacing.spacing.sm,
+    backgroundColor: Colors.background.disabled,
   },
   filterButtonActive: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Colors.primary.main,
   },
   filterText: {
-    fontSize: 14,
-    color: '#757575',
-    fontWeight: '500',
+    ...Typography.styles.label,
+    color: Colors.text.secondary,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: Colors.primary.contrast,
   },
   listContainer: {
-    padding: 16,
+    padding: Spacing.spacing.lg,
     flexGrow: 1,
   },
   settlementCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.component.card,
+    marginBottom: Spacing.spacing.md,
+    ...createShadowStyle('sm'),
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: Spacing.spacing.sm,
   },
   titleContainer: {
     flex: 1,
-    marginRight: 8,
+    marginRight: Spacing.spacing.sm,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.spacing.xs,
+  },
+  typeIcon: {
+    marginRight: Spacing.spacing.sm,
   },
   settlementTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 4,
+    ...Typography.styles.h4,
+    color: Colors.text.primary,
+    flex: 1,
   },
   settlementType: {
-    fontSize: 12,
-    color: '#757575',
+    ...Typography.styles.caption,
+    color: Colors.text.secondary,
+    marginLeft: 28,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.spacing.md,
+    paddingVertical: Spacing.spacing.xs,
+    borderRadius: Spacing.radius.lg,
   },
   statusText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '500',
+    ...Typography.styles.caption,
+    color: Colors.text.inverse,
+    fontWeight: Typography.fontWeight.medium,
   },
   settlementDescription: {
-    fontSize: 14,
-    color: '#616161',
-    marginBottom: 12,
+    ...Typography.styles.body2,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.spacing.md,
     lineHeight: 20,
   },
   cardFooter: {
@@ -347,51 +531,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateText: {
-    fontSize: 12,
-    color: '#9E9E9E',
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
   },
-  currencyText: {
-    fontSize: 12,
-    color: '#757575',
-    fontWeight: '500',
+  footerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.spacing.sm,
+  },
+  relativeTime: {
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+  },
+  currencyBadge: {
+    backgroundColor: Colors.action.secondary,
+    paddingHorizontal: Spacing.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Spacing.radius.sm,
+  },
+  currencyBadgeText: {
+    ...Typography.styles.caption,
+    color: Colors.primary.main,
+    fontWeight: Typography.fontWeight.semibold,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: Spacing.spacing['5xl'],
   },
   emptyText: {
-    fontSize: 16,
-    color: '#9E9E9E',
-    marginBottom: 8,
+    ...Typography.styles.body1,
+    color: Colors.text.hint,
+    marginTop: Spacing.spacing.lg,
+    marginBottom: Spacing.spacing.sm,
   },
   emptySubText: {
-    fontSize: 14,
-    color: '#BDBDBD',
+    ...Typography.styles.body2,
+    color: Colors.text.disabled,
+  },
+  emptyCta: {
+    marginTop: Spacing.spacing.xl,
+    backgroundColor: Colors.primary.main,
+    paddingHorizontal: Spacing.spacing['2xl'],
+    paddingVertical: Spacing.spacing.md,
+    borderRadius: Spacing.radius.md,
+  },
+  emptyCtaText: {
+    ...Typography.styles.button,
+    color: Colors.primary.contrast,
   },
   fabContainer: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
+    right: Spacing.spacing.xl,
+    bottom: Spacing.spacing.xl,
   },
   fab: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2196F3',
+    backgroundColor: Colors.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...createShadowStyle('md'),
     minHeight: 56,
   },
   fabText: {
-    fontSize: 32,
-    color: '#FFFFFF',
+    fontSize: 28,
+    lineHeight: 28,
+    color: Colors.primary.contrast,
     fontWeight: '300',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

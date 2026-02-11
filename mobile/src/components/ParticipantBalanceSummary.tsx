@@ -2,6 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Participant } from '../models/Participant';
 import { ExpenseWithDetails } from '../models/Expense';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 interface ParticipantBalanceSummaryProps {
   participants: Participant[];
@@ -91,9 +94,9 @@ const ParticipantBalanceSummary: React.FC<ParticipantBalanceSummaryProps> = ({
    * 잔액 색상
    */
   const getBalanceColor = (balance: number): string => {
-    if (balance > 0) return '#4CAF50'; // 받을 돈 (초록)
-    if (balance < 0) return '#F44336'; // 줄 돈 (빨강)
-    return '#9E9E9E'; // 정산 완료 (회색)
+    if (balance > 0) return Colors.status.success;
+    if (balance < 0) return Colors.status.error;
+    return Colors.text.disabled;
   };
 
   /**
@@ -148,63 +151,58 @@ const ParticipantBalanceSummary: React.FC<ParticipantBalanceSummaryProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: Spacing.spacing['2xl'],
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 12,
+    ...Typography.styles.h4,
+    color: Colors.text.primary,
+    marginBottom: Spacing.spacing.md,
   },
   balanceList: {
-    gap: 12,
+    gap: Spacing.spacing.md,
   },
   balanceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.component.card,
+    ...createShadowStyle('sm'),
   },
   balanceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.spacing.md,
   },
   participantName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212121',
+    ...Typography.styles.body1,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
   },
   balanceAmount: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.styles.h4,
+    fontWeight: Typography.fontWeight.bold,
   },
   balanceDetails: {
     flexDirection: 'row',
-    gap: 16,
+    gap: Spacing.spacing.lg,
   },
   balanceDetailItem: {
     flex: 1,
   },
   detailLabel: {
-    fontSize: 12,
-    color: '#9E9E9E',
-    marginBottom: 4,
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginBottom: Spacing.spacing.xs,
   },
   detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#616161',
+    ...Typography.styles.body2,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.secondary,
   },
   helpText: {
-    fontSize: 12,
-    color: '#9E9E9E',
-    marginTop: 8,
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginTop: Spacing.spacing.sm,
     fontStyle: 'italic',
   },
 });

@@ -10,23 +10,21 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   GameRoundWithEntries,
   GameRoundEntry,
   ParticipantGameStatus,
   GameSettlementResult,
 } from '../models/GameSettlement';
-import { Settlement } from '../models/Settlement';
+import { Settlement, SettlementStatus, UpdateSettlementRequest } from '../models/Settlement';
 import { Participant } from '../models/Participant';
-import { Colors } from '../constants/Colors';
-import { Typography } from '../constants/Typography';
-import { Spacing } from '../constants/Spacing';
 import AnimatedButton from '../components/AnimatedButton';
+import EditSettlementModal from '../components/EditSettlementModal';
 
 import { localGameSettlementService } from '../services/api/gameSettlementService';
-import { getSettlement, getParticipants } from '../services/api/settlementService';
+import { getSettlement, getParticipants, deleteSettlement, updateSettlement, getSettlementMembers, generateInviteCode } from '../services/api/settlementService';
+import { SettlementMember } from '../models/SettlementMember';
 import {
   calculateParticipantGameStatus,
   calculateGameSettlementResult,
@@ -35,6 +33,9 @@ import {
   formatGameAmount,
   createGameSummary,
 } from '../utils/gameSettlementUtils';
+import { Colors } from '../constants/Colors';
+import { Typography } from '../constants/Typography';
+import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 /**
  * GameSettlementScreen
@@ -54,6 +55,8 @@ export default function GameSettlementScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [gameResult, setGameResult] = useState<GameSettlementResult | null>(null);
+  const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
+  const [members, setMembers] = useState<SettlementMember[]>([]);
 
   // 현재 라운드
   const currentRound = gameRounds[currentRoundIndex];
@@ -73,6 +76,12 @@ export default function GameSettlementScreen() {
 
       setSettlement(settlementData);
       setParticipants(participantsData);
+
+      // 멤버 로드 (실패해도 무시)
+      try {
+        const membersData = await getSettlementMembers(settlementId);
+        setMembers(membersData);
+      } catch {}
 
       // 게임 라운드 로드
       const gameRoundsData = await localGameSettlementService.getLocalGameRounds(settlementId);
@@ -133,6 +142,44 @@ export default function GameSettlementScreen() {
   };
 
   /**
+   * 정산 정보 수정
+   */
+  const handleUpdateSettlement = async (data: UpdateSettlementRequest) => {
+    try {
+      await updateSettlement(settlementId, data);
+      await loadData();
+    } catch (error) {
+      console.error('정산 수정 실패:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * 정산 삭제
+   */
+  const handleDeleteSettlement = () => {
+    Alert.alert(
+      '정산 삭제',
+      `"${settlement?.title}"을(를) 삭제하시겠습니까?\n관련된 모든 데이터가 삭제됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSettlement(settlementId);
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  /**
    * 라운드 삭제
    */
   const handleDeleteRound = async (roundId: string) => {
@@ -176,6 +223,67 @@ export default function GameSettlementScreen() {
     } catch (error) {
       console.error('라운드 엔트리 업데이트 실패:', error);
       Alert.alert('오류', '라운드 데이터를 저장할 수 없습니다.');
+    }
+  };
+
+  const isCompleted = settlement?.status === SettlementStatus.COMPLETED;
+
+  const handleInvite = async () => {
+    try {
+      const invite = await generateInviteCode(settlementId);
+      Alert.alert(
+        '초대 코드',
+        `초대 코드: ${invite.code}\n\n유효 기간: 24시간\n이 코드를 공유하여 멤버를 초대하세요.`,
+        [{ text: '확인' }]
+      );
+    } catch (error: any) {
+      const message = error.response?.data?.message || '초대 코드 생성에 실패했습니다.';
+      Alert.alert('오류', message);
+    }
+  };
+
+  /**
+   * 정산 완료/다시 열기 토글
+   */
+  const handleToggleComplete = () => {
+    if (isCompleted) {
+      Alert.alert(
+        '정산 다시 열기',
+        '정산을 다시 열면 수정이 가능합니다. 계속하시겠습니까?',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '다시 열기',
+            onPress: async () => {
+              try {
+                await updateSettlement(settlementId, { status: SettlementStatus.ACTIVE });
+                await loadData();
+              } catch (error) {
+                Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        '정산 완료',
+        '정산을 완료하시겠습니까?\n완료 후에는 수정할 수 없습니다.',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '완료',
+            onPress: async () => {
+              try {
+                await updateSettlement(settlementId, { status: SettlementStatus.COMPLETED });
+                await loadData();
+              } catch (error) {
+                Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+              }
+            },
+          },
+        ]
+      );
     }
   };
 
@@ -234,7 +342,11 @@ export default function GameSettlementScreen() {
           <Text
             style={[
               styles.participantAmount,
-              status.totalAmount > 0 ? styles.positiveAmount : styles.negativeAmount,
+              status.totalAmount > 0
+                ? styles.positiveAmount
+                : status.totalAmount < 0
+                  ? styles.negativeAmount
+                  : styles.zeroAmount,
             ]}
           >
             {formatGameAmount(status.totalAmount)}원
@@ -246,23 +358,53 @@ export default function GameSettlementScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text>로딩 중...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>로딩 중...</Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
-        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{settlement?.title} - 게임 정산</Text>
+        {/* 헤더 카드 */}
+        <View style={styles.headerCard}>
+          <Text style={styles.title}>{settlement?.title}</Text>
+          <Text style={styles.subtitle}>게임 정산</Text>
+          {settlement?.description && (
+            <Text style={styles.description}>{settlement.description}</Text>
+          )}
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.completeToggleBtn, isCompleted ? styles.reopenBtn : styles.completeBtn]}
+              onPress={handleToggleComplete}
+            >
+              <Text style={styles.completeBtnText}>
+                {isCompleted ? '다시 열기' : '정산 완료'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {!isCompleted && (
+            <View style={[styles.headerActions, { marginTop: 8 }]}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => setEditSettlementModalVisible(true)}
+              >
+                <Text style={styles.editButtonText}>수정</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteSettlement}>
+                <Text style={styles.deleteButtonText}>삭제</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {isCompleted && (
+            <View style={styles.completedBadgeContainer}>
+              <Text style={styles.completedBadgeText}>정산 완료됨</Text>
+            </View>
+          )}
         </View>
 
         {/* 게임 요약 */}
@@ -272,7 +414,7 @@ export default function GameSettlementScreen() {
         {participantStatus.length > 0 && renderParticipantStatus()}
 
         {/* 라운드 탭 */}
-        {gameRounds.length > 0 && (
+        {gameRounds.length > 0 ? (
           <View style={styles.roundTabs}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {gameRounds.map((round, index) => (
@@ -298,6 +440,15 @@ export default function GameSettlementScreen() {
               ))}
             </ScrollView>
           </View>
+        ) : (
+          <View style={styles.emptyRounds}>
+            <MaterialCommunityIcons
+              name="cards-playing-outline"
+              size={48}
+              color={Colors.text.disabled}
+            />
+            <Text style={styles.emptyRoundsText}>라운드를 추가해보세요</Text>
+          </View>
         )}
 
         {/* 현재 라운드 입력 */}
@@ -312,14 +463,16 @@ export default function GameSettlementScreen() {
 
         {/* 액션 버튼 */}
         <View style={styles.actionButtons}>
-          <AnimatedButton
-            title="+ 라운드 추가"
-            onPress={handleAddRound}
-            variant="secondary"
-            size="medium"
-            feedbackType="scale"
-            style={styles.addButton}
-          />
+          {!isCompleted && (
+            <AnimatedButton
+              title="+ 라운드 추가"
+              onPress={handleAddRound}
+              variant="secondary"
+              size="medium"
+              feedbackType="scale"
+              style={styles.addButton}
+            />
+          )}
 
           {gameRounds.length > 0 && gameResult && (
             <AnimatedButton
@@ -333,7 +486,17 @@ export default function GameSettlementScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {/* 정산 수정 모달 */}
+      {settlement && (
+        <EditSettlementModal
+          visible={editSettlementModalVisible}
+          settlement={settlement}
+          onClose={() => setEditSettlementModalVisible(false)}
+          onSubmit={handleUpdateSettlement}
+        />
+      )}
+    </View>
   );
 }
 
@@ -479,30 +642,106 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.background.default,
   },
-  scrollView: {
-    flex: 1,
+  loadingText: {
+    ...Typography.styles.body1,
+    color: Colors.text.hint,
   },
-  header: {
+  scrollContent: {
     padding: Spacing.spacing.lg,
-    backgroundColor: Colors.background.paper,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    paddingBottom: Spacing.spacing['3xl'],
   },
-  title: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-  },
-  summaryContainer: {
-    margin: Spacing.spacing.lg,
-    padding: Spacing.spacing.lg,
+  headerCard: {
     backgroundColor: Colors.background.paper,
     borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.xl,
+    marginBottom: Spacing.spacing.lg,
+    ...createShadowStyle('sm'),
+  },
+  title: {
+    ...Typography.styles.h2,
+    color: Colors.text.primary,
+    marginBottom: Spacing.spacing.xs,
+  },
+  subtitle: {
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginBottom: Spacing.spacing.sm,
+  },
+  description: {
+    ...Typography.styles.body2,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.spacing.sm,
+    lineHeight: 20,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: Spacing.spacing.sm,
+    marginTop: Spacing.spacing.md,
+  },
+  completeToggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.spacing.lg,
+    borderRadius: Spacing.radius.md,
+    alignItems: 'center',
+  },
+  completeBtn: {
+    backgroundColor: Colors.status.success,
+  },
+  reopenBtn: {
+    backgroundColor: Colors.status.warning,
+  },
+  completeBtnText: {
+    ...Typography.styles.button,
+    color: Colors.text.inverse,
+  },
+  completedBadgeContainer: {
+    marginTop: Spacing.spacing.sm,
+    backgroundColor: Colors.action.secondary,
+    borderRadius: Spacing.radius.md,
+    padding: Spacing.spacing.sm,
+    alignItems: 'center',
+  },
+  completedBadgeText: {
+    ...Typography.styles.caption,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary.main,
+  },
+  editButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.spacing.lg,
+    borderRadius: Spacing.radius.md,
+    backgroundColor: Colors.primary.main,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    ...Typography.styles.button,
+    color: Colors.text.inverse,
+  },
+  deleteButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.spacing.lg,
+    borderRadius: Spacing.radius.md,
+    backgroundColor: Colors.status.error,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    ...Typography.styles.button,
+    color: Colors.text.inverse,
+  },
+  summaryContainer: {
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.xl,
+    marginBottom: Spacing.spacing.lg,
+    ...createShadowStyle('sm'),
   },
   summaryTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
+    ...Typography.styles.h4,
     color: Colors.text.primary,
     marginBottom: Spacing.spacing.md,
   },
@@ -512,24 +751,23 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.spacing.sm,
   },
   summaryLabel: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.text.secondary,
+    ...Typography.styles.body2,
+    color: Colors.text.hint,
   },
   summaryValue: {
-    fontSize: Typography.fontSize.md,
+    ...Typography.styles.body2,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.text.primary,
   },
   statusContainer: {
-    margin: Spacing.spacing.lg,
-    marginTop: 0,
-    padding: Spacing.spacing.lg,
     backgroundColor: Colors.background.paper,
     borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.xl,
+    marginBottom: Spacing.spacing.lg,
+    ...createShadowStyle('sm'),
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
+    ...Typography.styles.h4,
     color: Colors.text.primary,
     marginBottom: Spacing.spacing.md,
   },
@@ -539,14 +777,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.background.elevated,
+    borderBottomColor: Colors.border.light,
   },
   participantName: {
-    fontSize: Typography.fontSize.md,
+    ...Typography.styles.body1,
     color: Colors.text.primary,
   },
   participantAmount: {
-    fontSize: Typography.fontSize.md,
+    ...Typography.styles.body1,
     fontWeight: Typography.fontWeight.semibold,
   },
   positiveAmount: {
@@ -555,9 +793,11 @@ const styles = StyleSheet.create({
   negativeAmount: {
     color: Colors.status.error,
   },
+  zeroAmount: {
+    color: Colors.text.disabled,
+  },
   roundTabs: {
-    marginHorizontal: Spacing.spacing.lg,
-    marginVertical: Spacing.spacing.md,
+    marginBottom: Spacing.spacing.lg,
   },
   roundTab: {
     paddingHorizontal: Spacing.spacing.lg,
@@ -576,23 +816,34 @@ const styles = StyleSheet.create({
     borderColor: Colors.status.success,
   },
   roundTabText: {
-    fontSize: Typography.fontSize.sm,
+    ...Typography.styles.caption,
     color: Colors.text.secondary,
   },
   roundTabTextActive: {
-    color: Colors.text.inverse,
+    color: Colors.primary.contrast,
     fontWeight: Typography.fontWeight.medium,
   },
   validIcon: {
     marginLeft: Spacing.spacing.xs,
-    fontSize: Typography.fontSize.xs,
+    fontSize: 10,
     color: Colors.status.success,
   },
+  emptyRounds: {
+    alignItems: 'center',
+    paddingVertical: Spacing.spacing['3xl'],
+    marginBottom: Spacing.spacing.lg,
+  },
+  emptyRoundsText: {
+    ...Typography.styles.body1,
+    color: Colors.text.hint,
+    marginTop: Spacing.spacing.md,
+  },
   roundForm: {
-    margin: Spacing.spacing.lg,
-    padding: Spacing.spacing.lg,
     backgroundColor: Colors.background.paper,
     borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.lg,
+    marginBottom: Spacing.spacing.lg,
+    ...createShadowStyle('sm'),
   },
   roundFormHeader: {
     flexDirection: 'row',
@@ -601,18 +852,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.spacing.lg,
   },
   roundFormTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
+    ...Typography.styles.h4,
     color: Colors.text.primary,
   },
   deleteRoundButton: {
     paddingHorizontal: Spacing.spacing.md,
     paddingVertical: Spacing.spacing.sm,
     backgroundColor: Colors.status.error,
-    borderRadius: Spacing.radius.sm,
+    borderRadius: Spacing.radius.md,
   },
   deleteRoundButtonText: {
-    fontSize: Typography.fontSize.sm,
+    ...Typography.styles.caption,
     color: Colors.text.inverse,
     fontWeight: Typography.fontWeight.medium,
   },
@@ -623,20 +873,20 @@ const styles = StyleSheet.create({
   },
   participantLabel: {
     flex: 1,
-    fontSize: Typography.fontSize.md,
+    ...Typography.styles.body1,
     color: Colors.text.primary,
   },
   amountInput: {
     width: 100,
     padding: Spacing.spacing.sm,
     backgroundColor: Colors.background.elevated,
-    borderRadius: Spacing.radius.sm,
+    borderRadius: Spacing.radius.md,
     textAlign: 'right',
     fontSize: Typography.fontSize.md,
   },
   amountUnit: {
     marginLeft: Spacing.spacing.sm,
-    fontSize: Typography.fontSize.md,
+    ...Typography.styles.body1,
     color: Colors.text.secondary,
     width: 20,
   },
@@ -650,12 +900,12 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border.light,
   },
   totalLabel: {
-    fontSize: Typography.fontSize.md,
+    ...Typography.styles.body1,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
   },
   totalAmount: {
-    fontSize: Typography.fontSize.lg,
+    ...Typography.styles.h4,
     fontWeight: Typography.fontWeight.bold,
   },
   validTotal: {

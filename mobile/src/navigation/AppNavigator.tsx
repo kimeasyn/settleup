@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import TravelSettlementScreen from '../screens/TravelSettlementScreen';
 import CreateSettlementScreen from '../screens/CreateSettlementScreen';
@@ -54,9 +55,9 @@ const HomeStack = () => (
   <Stack.Navigator
     screenOptions={{
       headerStyle: {
-        backgroundColor: '#2196F3',
+        backgroundColor: Colors.primary.main,
       },
-      headerTintColor: '#FFFFFF',
+      headerTintColor: Colors.primary.contrast,
       headerTitleStyle: {
         fontWeight: '600',
       },
@@ -117,9 +118,9 @@ const HistoryStack = () => (
   <Stack.Navigator
     screenOptions={{
       headerStyle: {
-        backgroundColor: '#2196F3',
+        backgroundColor: Colors.primary.main,
       },
-      headerTintColor: '#FFFFFF',
+      headerTintColor: Colors.primary.contrast,
       headerTitleStyle: {
         fontWeight: '600',
       },
@@ -141,8 +142,8 @@ const MainTabs = () => (
   <Tab.Navigator
     screenOptions={{
       headerShown: false,
-      tabBarActiveTintColor: '#2196F3',
-      tabBarInactiveTintColor: '#8E8E93',
+      tabBarActiveTintColor: Colors.primary.main,
+      tabBarInactiveTintColor: Colors.text.hint,
     }}
   >
     <Tab.Screen
@@ -150,6 +151,9 @@ const MainTabs = () => (
       component={HomeStack}
       options={{
         tabBarLabel: '홈',
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="home-outline" size={size} color={color} />
+        ),
       }}
     />
     <Tab.Screen
@@ -157,6 +161,9 @@ const MainTabs = () => (
       component={HistoryStack}
       options={{
         tabBarLabel: '히스토리',
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="time-outline" size={size} color={color} />
+        ),
       }}
     />
   </Tab.Navigator>
