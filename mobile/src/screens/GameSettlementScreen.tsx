@@ -50,7 +50,7 @@ export default function GameSettlementScreen() {
   const [settlement, setSettlement] = useState<Settlement | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [gameRounds, setGameRounds] = useState<GameRoundWithEntries[]>([]);
-  const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
+  const [expandedRoundId, setExpandedRoundId] = useState<string | null>(null);
   const [participantStatus, setParticipantStatus] = useState<ParticipantGameStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,15 +58,12 @@ export default function GameSettlementScreen() {
   const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
   const [members, setMembers] = useState<SettlementMember[]>([]);
 
-  // 현재 라운드
-  const currentRound = gameRounds[currentRoundIndex];
-
   /**
    * 데이터 로드
    */
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (!settlement) setLoading(true);
 
       // 정산 정보 및 참가자 로드
       const [settlementData, participantsData] = await Promise.all([
@@ -134,7 +131,7 @@ export default function GameSettlementScreen() {
     try {
       const newRound = await localGameSettlementService.createLocalRound(settlementId);
       await loadData();
-      setCurrentRoundIndex(gameRounds.length); // 새 라운드로 이동
+      setExpandedRoundId(newRound.id);
     } catch (error) {
       console.error('라운드 생성 실패:', error);
       Alert.alert('오류', '라운드를 생성할 수 없습니다.');
@@ -194,12 +191,10 @@ export default function GameSettlementScreen() {
           onPress: async () => {
             try {
               await localGameSettlementService.deleteLocalRound(settlementId, roundId);
-              await loadData();
-
-              // 현재 인덱스 조정
-              if (currentRoundIndex >= gameRounds.length - 1) {
-                setCurrentRoundIndex(Math.max(0, gameRounds.length - 2));
+              if (expandedRoundId === roundId) {
+                setExpandedRoundId(null);
               }
+              await loadData();
             } catch (error) {
               console.error('라운드 삭제 실패:', error);
               Alert.alert('오류', '라운드를 삭제할 수 없습니다.');
@@ -224,6 +219,24 @@ export default function GameSettlementScreen() {
       console.error('라운드 엔트리 업데이트 실패:', error);
       Alert.alert('오류', '라운드 데이터를 저장할 수 없습니다.');
     }
+  };
+
+  /**
+   * Winner 텍스트 반환
+   */
+  const getWinnerText = (round: GameRoundWithEntries): string => {
+    if (!round.entries || round.entries.length === 0) return '미입력';
+    const positiveEntries = round.entries.filter(e => e.amount > 0);
+    if (positiveEntries.length === 0) return '미입력';
+    const winner = positiveEntries.reduce((max, e) => e.amount > max.amount ? e : max, positiveEntries[0]);
+    return `Winner: ${winner.participantName} ${formatGameAmount(winner.amount)}원`;
+  };
+
+  /**
+   * 아코디언 토글
+   */
+  const toggleAccordion = (roundId: string) => {
+    setExpandedRoundId(prev => prev === roundId ? null : roundId);
   };
 
   const isCompleted = settlement?.status === SettlementStatus.COMPLETED;
@@ -413,33 +426,58 @@ export default function GameSettlementScreen() {
         {/* 참가자 현황 */}
         {participantStatus.length > 0 && renderParticipantStatus()}
 
-        {/* 라운드 탭 */}
+        {/* 라운드 아코디언 */}
         {gameRounds.length > 0 ? (
-          <View style={styles.roundTabs}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {gameRounds.map((round, index) => (
-                <TouchableOpacity
-                  key={round.round.id}
-                  style={[
-                    styles.roundTab,
-                    index === currentRoundIndex && styles.roundTabActive,
-                    round.isValid && styles.roundTabValid,
-                  ]}
-                  onPress={() => setCurrentRoundIndex(index)}
-                >
-                  <Text
-                    style={[
-                      styles.roundTabText,
-                      index === currentRoundIndex && styles.roundTabTextActive,
-                    ]}
-                  >
-                    {round.round.title}
-                  </Text>
-                  {round.isValid && <Text style={styles.validIcon}>✓</Text>}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+          gameRounds.map(round => (
+            <View key={round.round.id} style={styles.accordionItem}>
+              {/* 아코디언 헤더 */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => toggleAccordion(round.round.id)}
+              >
+                <View style={[
+                  styles.accordionHeader,
+                  expandedRoundId === round.round.id && styles.accordionHeaderExpanded,
+                ]}>
+                  <View style={styles.accordionTitleRow}>
+                    <Text style={styles.accordionTitle}>{round.round.title}</Text>
+                    <Text style={[
+                      styles.accordionSubtitle,
+                      round.entries.some(e => e.amount > 0) && styles.accordionWinnerText,
+                    ]}>
+                      {getWinnerText(round)}
+                    </Text>
+                  </View>
+                  <View style={styles.accordionIcons}>
+                    {round.isValid && (
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={20}
+                        color={Colors.status.success}
+                      />
+                    )}
+                    <MaterialCommunityIcons
+                      name={expandedRoundId === round.round.id ? 'chevron-up' : 'chevron-down'}
+                      size={24}
+                      color={Colors.text.hint}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* 아코디언 바디 */}
+              {expandedRoundId === round.round.id && (
+                <View style={styles.accordionBody}>
+                  <RoundEntryForm
+                    round={round}
+                    participants={participants}
+                    onUpdateEntries={handleUpdateRoundEntries}
+                    onDeleteRound={handleDeleteRound}
+                  />
+                </View>
+              )}
+            </View>
+          ))
         ) : (
           <View style={styles.emptyRounds}>
             <MaterialCommunityIcons
@@ -449,16 +487,6 @@ export default function GameSettlementScreen() {
             />
             <Text style={styles.emptyRoundsText}>라운드를 추가해보세요</Text>
           </View>
-        )}
-
-        {/* 현재 라운드 입력 */}
-        {currentRound && (
-          <RoundEntryForm
-            round={currentRound}
-            participants={participants}
-            onUpdateEntries={handleUpdateRoundEntries}
-            onDeleteRound={handleDeleteRound}
-          />
         )}
 
         {/* 액션 버튼 */}
@@ -796,37 +824,46 @@ const styles = StyleSheet.create({
   zeroAmount: {
     color: Colors.text.disabled,
   },
-  roundTabs: {
-    marginBottom: Spacing.spacing.lg,
+  accordionItem: {
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    marginBottom: Spacing.spacing.md,
+    ...createShadowStyle('sm'),
+    overflow: 'hidden',
   },
-  roundTab: {
-    paddingHorizontal: Spacing.spacing.lg,
-    paddingVertical: Spacing.spacing.md,
-    marginRight: Spacing.spacing.sm,
-    backgroundColor: Colors.background.elevated,
-    borderRadius: Spacing.radius.md,
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.spacing.lg,
+  },
+  accordionHeaderExpanded: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  accordionTitleRow: {
+    flex: 1,
+    marginRight: Spacing.spacing.md,
+  },
+  accordionTitle: {
+    ...Typography.styles.h5,
+    color: Colors.text.primary,
+  },
+  accordionSubtitle: {
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginTop: Spacing.spacing.xs,
+  },
+  accordionWinnerText: {
+    color: Colors.status.success,
+  },
+  accordionIcons: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.spacing.sm,
   },
-  roundTabActive: {
-    backgroundColor: Colors.primary.main,
-  },
-  roundTabValid: {
-    borderWidth: 2,
-    borderColor: Colors.status.success,
-  },
-  roundTabText: {
-    ...Typography.styles.caption,
-    color: Colors.text.secondary,
-  },
-  roundTabTextActive: {
-    color: Colors.primary.contrast,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  validIcon: {
-    marginLeft: Spacing.spacing.xs,
-    fontSize: 10,
-    color: Colors.status.success,
+  accordionBody: {
+    padding: Spacing.spacing.lg,
   },
   emptyRounds: {
     alignItems: 'center',
@@ -839,11 +876,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.spacing.md,
   },
   roundForm: {
-    backgroundColor: Colors.background.paper,
-    borderRadius: Spacing.radius.lg,
-    padding: Spacing.spacing.lg,
-    marginBottom: Spacing.spacing.lg,
-    ...createShadowStyle('sm'),
+    // No card styling — handled by accordionItem wrapper
   },
   roundFormHeader: {
     flexDirection: 'row',
