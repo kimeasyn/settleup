@@ -5,11 +5,18 @@ import com.settleup.domain.settlement.SettlementStatus;
 import com.settleup.dto.SettlementCreateRequest;
 import com.settleup.dto.SettlementResponse;
 import com.settleup.dto.SettlementUpdateRequest;
+import com.settleup.exception.BusinessException;
 import com.settleup.exception.ResourceNotFoundException;
 import com.settleup.repository.SettlementRepository;
+import com.settleup.repository.SettlementResultRepository;
+import com.settleup.repository.SettlementMemberRepository;
+import com.settleup.repository.SettlementInviteCodeRepository;
 import com.settleup.repository.ExpenseRepository;
 import com.settleup.repository.ExpenseSplitRepository;
 import com.settleup.repository.ParticipantRepository;
+import com.settleup.repository.GameRoundRepository;
+import com.settleup.repository.GameRoundEntryRepository;
+import com.settleup.domain.game.GameRound;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +44,11 @@ public class SettlementService {
     private final ExpenseRepository expenseRepository;
     private final ExpenseSplitRepository expenseSplitRepository;
     private final ParticipantRepository participantRepository;
+    private final SettlementResultRepository settlementResultRepository;
+    private final SettlementMemberRepository settlementMemberRepository;
+    private final SettlementInviteCodeRepository settlementInviteCodeRepository;
+    private final GameRoundRepository gameRoundRepository;
+    private final GameRoundEntryRepository gameRoundEntryRepository;
 
     /**
      * 정산 생성
@@ -139,6 +151,16 @@ public class SettlementService {
         Settlement settlement = settlementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", id));
 
+        // COMPLETED 상태에서는 status 변경만 허용 (다시 열기)
+        if (settlement.getStatus() == SettlementStatus.COMPLETED) {
+            boolean hasNonStatusChange = request.getTitle() != null || request.getDescription() != null
+                    || request.getStartDate() != null || request.getEndDate() != null
+                    || request.getCurrency() != null;
+            if (hasNonStatusChange) {
+                throw new BusinessException("완료된 정산은 수정할 수 없습니다. 먼저 정산을 다시 열어주세요.");
+            }
+        }
+
         // 제공된 필드만 업데이트
         if (request.getTitle() != null) {
             settlement.setTitle(request.getTitle());
@@ -169,6 +191,17 @@ public class SettlementService {
     }
 
     /**
+     * 정산이 COMPLETED 상태인지 확인하고, 그렇다면 예외 발생
+     */
+    public void validateSettlementNotCompleted(UUID settlementId) {
+        Settlement settlement = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", settlementId));
+        if (settlement.getStatus() == SettlementStatus.COMPLETED) {
+            throw new BusinessException("완료된 정산은 수정할 수 없습니다.");
+        }
+    }
+
+    /**
      * 정산 삭제
      */
     @Transactional
@@ -180,6 +213,27 @@ public class SettlementService {
         }
 
         // 외래 키 제약 조건 순서대로 삭제
+        // 0a. invite_codes 삭제
+        log.info("Deleting related invite codes for settlement: id={}", id);
+        settlementInviteCodeRepository.deleteBySettlementId(id);
+
+        // 0b. members 삭제
+        log.info("Deleting related members for settlement: id={}", id);
+        settlementMemberRepository.deleteBySettlementId(id);
+
+        // 0c. settlement_results 삭제
+        log.info("Deleting related settlement results for settlement: id={}", id);
+        settlementResultRepository.deleteBySettlementId(id);
+
+        // 0d. game_round_entries + game_rounds 삭제
+        log.info("Deleting related game rounds for settlement: id={}", id);
+        List<GameRound> gameRounds = gameRoundRepository.findBySettlementIdOrderByRoundNumberAsc(id);
+        if (!gameRounds.isEmpty()) {
+            List<UUID> roundIds = gameRounds.stream().map(GameRound::getId).toList();
+            gameRoundEntryRepository.deleteByRoundIdIn(roundIds);
+            gameRoundRepository.deleteBySettlementId(id);
+        }
+
         // 1. expense_splits 삭제 (expenses를 참조)
         log.info("Deleting related expense splits for settlement: id={}", id);
         var expenses = expenseRepository.findBySettlementIdOrderByExpenseDateDesc(id);

@@ -3,6 +3,7 @@
  * 라운드별 금액 입출 기록 및 최종 정산 API 호출
  */
 
+import { apiClient } from './client';
 import {
   GameRound,
   GameRoundEntry,
@@ -16,43 +17,6 @@ import {
   CompleteGameSettlementRequest,
 } from '../../models/GameSettlement';
 
-// API Base URL (환경에 따라 변경)
-const API_BASE_URL = __DEV__
-  ? 'http://localhost:8080/api'
-  : 'https://your-production-api.com/api';
-
-/**
- * API 요청 헬퍼
- */
-const apiRequest = async <T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> => {
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  try {
-    const response = await fetch(url, config);
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(`API Error: ${response.status} - ${errorData}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`API Request failed for ${endpoint}:`, error);
-    throw error;
-  }
-};
-
 // ===== 게임 라운드 관리 API =====
 
 /**
@@ -61,12 +25,11 @@ const apiRequest = async <T>(
 export const createGameRound = async (
   request: CreateGameRoundRequest
 ): Promise<GameRound> => {
-  return apiRequest<GameRound>(`/settlements/${request.settlementId}/rounds`, {
-    method: 'POST',
-    body: JSON.stringify({
-      title: request.title,
-    }),
-  });
+  const response = await apiClient.post<GameRound>(
+    `/settlements/${request.settlementId}/game-rounds`,
+    { title: request.title }
+  );
+  return response.data;
 };
 
 /**
@@ -75,25 +38,17 @@ export const createGameRound = async (
 export const getGameRounds = async (
   settlementId: string
 ): Promise<GameRoundWithEntries[]> => {
-  return apiRequest<GameRoundWithEntries[]>(`/settlements/${settlementId}/rounds`);
-};
-
-/**
- * 특정 게임 라운드 상세 조회
- */
-export const getGameRound = async (
-  roundId: string
-): Promise<GameRoundWithEntries> => {
-  return apiRequest<GameRoundWithEntries>(`/rounds/${roundId}`);
+  const response = await apiClient.get<GameRoundWithEntries[]>(
+    `/settlements/${settlementId}/game-rounds`
+  );
+  return response.data;
 };
 
 /**
  * 게임 라운드 삭제
  */
 export const deleteGameRound = async (roundId: string): Promise<void> => {
-  return apiRequest<void>(`/rounds/${roundId}`, {
-    method: 'DELETE',
-  });
+  await apiClient.delete(`/game-rounds/${roundId}`);
 };
 
 // ===== 게임 라운드 엔트리 관리 API =====
@@ -104,14 +59,15 @@ export const deleteGameRound = async (roundId: string): Promise<void> => {
 export const upsertGameRoundEntry = async (
   request: CreateGameRoundEntryRequest
 ): Promise<GameRoundEntry> => {
-  return apiRequest<GameRoundEntry>(`/rounds/${request.roundId}/entries`, {
-    method: 'POST',
-    body: JSON.stringify({
+  const response = await apiClient.post<GameRoundEntry>(
+    `/game-rounds/${request.roundId}/entries`,
+    {
       participantId: request.participantId,
       amount: request.amount,
       memo: request.memo,
-    }),
-  });
+    }
+  );
+  return response.data;
 };
 
 /**
@@ -120,21 +76,18 @@ export const upsertGameRoundEntry = async (
 export const updateGameRoundEntries = async (
   request: UpdateGameRoundEntriesRequest
 ): Promise<GameRoundWithEntries> => {
-  return apiRequest<GameRoundWithEntries>(`/rounds/${request.roundId}/entries/batch`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      entries: request.entries,
-    }),
-  });
+  const response = await apiClient.put<GameRoundWithEntries>(
+    `/game-rounds/${request.roundId}/entries`,
+    { entries: request.entries }
+  );
+  return response.data;
 };
 
 /**
  * 게임 라운드 엔트리 삭제
  */
 export const deleteGameRoundEntry = async (entryId: string): Promise<void> => {
-  return apiRequest<void>(`/entries/${entryId}`, {
-    method: 'DELETE',
-  });
+  await apiClient.delete(`/game-rounds/entries/${entryId}`);
 };
 
 // ===== 게임 라운드 상태 관리 API =====
@@ -145,18 +98,20 @@ export const deleteGameRoundEntry = async (entryId: string): Promise<void> => {
 export const completeGameRound = async (
   request: CompleteGameRoundRequest
 ): Promise<GameRoundWithEntries> => {
-  return apiRequest<GameRoundWithEntries>(`/rounds/${request.roundId}/complete`, {
-    method: 'POST',
-  });
+  const response = await apiClient.post<GameRoundWithEntries>(
+    `/game-rounds/${request.roundId}/complete`
+  );
+  return response.data;
 };
 
 /**
  * 게임 라운드 완료 취소
  */
 export const uncompleteGameRound = async (roundId: string): Promise<GameRoundWithEntries> => {
-  return apiRequest<GameRoundWithEntries>(`/rounds/${roundId}/uncomplete`, {
-    method: 'POST',
-  });
+  const response = await apiClient.post<GameRoundWithEntries>(
+    `/game-rounds/${roundId}/uncomplete`
+  );
+  return response.data;
 };
 
 // ===== 게임 정산 전체 관리 API =====
@@ -167,7 +122,10 @@ export const uncompleteGameRound = async (roundId: string): Promise<GameRoundWit
 export const getGameSettlementStatus = async (
   settlementId: string
 ): Promise<GameSettlementStatus> => {
-  return apiRequest<GameSettlementStatus>(`/settlements/${settlementId}/game-status`);
+  const response = await apiClient.get<GameSettlementStatus>(
+    `/settlements/${settlementId}/game-status`
+  );
+  return response.data;
 };
 
 /**
@@ -176,7 +134,10 @@ export const getGameSettlementStatus = async (
 export const calculateGameSettlementResult = async (
   settlementId: string
 ): Promise<GameSettlementResult> => {
-  return apiRequest<GameSettlementResult>(`/settlements/${settlementId}/game-result`);
+  const response = await apiClient.get<GameSettlementResult>(
+    `/settlements/${settlementId}/game-result`
+  );
+  return response.data;
 };
 
 /**
@@ -185,27 +146,28 @@ export const calculateGameSettlementResult = async (
 export const completeGameSettlement = async (
   request: CompleteGameSettlementRequest
 ): Promise<GameSettlementResult> => {
-  return apiRequest<GameSettlementResult>(`/settlements/${request.settlementId}/game-complete`, {
-    method: 'POST',
-  });
+  const response = await apiClient.post<GameSettlementResult>(
+    `/settlements/${request.settlementId}/game-complete`
+  );
+  return response.data;
 };
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// ===== 로컬 전용 함수 (백엔드가 준비되기 전 사용) =====
+// ===== 서버 API 기반 게임 정산 서비스 =====
 
 /**
- * AsyncStorage를 사용한 게임 라운드 관리 (개발용)
+ * 게임 정산 서비스 (서버 API 호출)
+ * 기존 localGameSettlementService와 동일한 인터페이스 유지
  */
 export const localGameSettlementService = {
   /**
-   * AsyncStorage에서 게임 라운드 목록 가져오기
+   * 게임 라운드 목록 가져오기
    */
   getLocalGameRounds: async (settlementId: string): Promise<GameRoundWithEntries[]> => {
     try {
-      const key = `game_rounds_${settlementId}`;
-      const stored = await AsyncStorage.getItem(key);
-      return stored ? JSON.parse(stored) : [];
+      const response = await apiClient.get<GameRoundWithEntries[]>(
+        `/settlements/${settlementId}/game-rounds`
+      );
+      return response.data;
     } catch (error) {
       console.error('게임 라운드 로드 실패:', error);
       return [];
@@ -213,102 +175,50 @@ export const localGameSettlementService = {
   },
 
   /**
-   * AsyncStorage에 게임 라운드 저장
-   */
-  saveLocalGameRounds: async (settlementId: string, rounds: GameRoundWithEntries[]): Promise<void> => {
-    try {
-      const key = `game_rounds_${settlementId}`;
-      await AsyncStorage.setItem(key, JSON.stringify(rounds));
-    } catch (error) {
-      console.error('게임 라운드 저장 실패:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * 로컬에서 새 라운드 생성
+   * 새 라운드 생성
    */
   createLocalRound: async (settlementId: string, title?: string): Promise<GameRound> => {
-    const existingRounds = await localGameSettlementService.getLocalGameRounds(settlementId);
-    const nextRoundNumber = existingRounds.length + 1;
-
-    const newRound: GameRound = {
-      id: `round_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      settlementId,
-      roundNumber: nextRoundNumber,
-      title: title || `${nextRoundNumber}라운드`,
-      createdAt: new Date().toISOString(),
-      isCompleted: false,
-    };
-
-    const newRoundWithEntries: GameRoundWithEntries = {
-      round: newRound,
-      entries: [],
-      totalAmount: 0,
-      isValid: false,
-    };
-
-    const updatedRounds = [...existingRounds, newRoundWithEntries];
-    await localGameSettlementService.saveLocalGameRounds(settlementId, updatedRounds);
-
-    return newRound;
+    const response = await apiClient.post<GameRound>(
+      `/settlements/${settlementId}/game-rounds`,
+      { title }
+    );
+    return response.data;
   },
 
   /**
-   * 로컬에서 라운드 엔트리 업데이트
+   * 라운드 엔트리 업데이트
    */
   updateLocalRoundEntries: async (
     settlementId: string,
     roundId: string,
-    entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[]
+    entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[],
+    excludedParticipantIds?: string[]
   ): Promise<GameRoundWithEntries> => {
-    const existingRounds = await localGameSettlementService.getLocalGameRounds(settlementId);
-    const roundIndex = existingRounds.findIndex(r => r.round.id === roundId);
-
-    if (roundIndex === -1) {
-      throw new Error('라운드를 찾을 수 없습니다.');
-    }
-
-    const updatedEntries: GameRoundEntry[] = entries.map(entry => ({
-      id: `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      ...entry,
-    }));
-
-    const totalAmount = updatedEntries.reduce((sum, entry) => sum + entry.amount, 0);
-    const updatedRound: GameRoundWithEntries = {
-      ...existingRounds[roundIndex],
-      entries: updatedEntries,
-      totalAmount,
-      isValid: totalAmount === 0,
-    };
-
-    const updatedRounds = [...existingRounds];
-    updatedRounds[roundIndex] = updatedRound;
-    await localGameSettlementService.saveLocalGameRounds(settlementId, updatedRounds);
-
-    return updatedRound;
+    const response = await apiClient.put<GameRoundWithEntries>(
+      `/game-rounds/${roundId}/entries`,
+      {
+        entries: entries.map(e => ({
+          participantId: e.participantId,
+          amount: e.amount,
+          memo: e.memo,
+        })),
+        excludedParticipantIds,
+      }
+    );
+    return response.data;
   },
 
   /**
-   * 로컬에서 라운드 삭제
+   * 라운드 삭제
    */
   deleteLocalRound: async (settlementId: string, roundId: string): Promise<void> => {
-    const existingRounds = await localGameSettlementService.getLocalGameRounds(settlementId);
-    const filteredRounds = existingRounds.filter(r => r.round.id !== roundId);
-    await localGameSettlementService.saveLocalGameRounds(settlementId, filteredRounds);
+    await apiClient.delete(`/game-rounds/${roundId}`);
   },
 
   /**
-   * AsyncStorage 초기화
+   * 게임 데이터 초기화 (서버에서 settlement 삭제 시 cascade 처리)
    */
   clearLocalGameData: async (settlementId: string): Promise<void> => {
-    try {
-      const key = `game_rounds_${settlementId}`;
-      await AsyncStorage.removeItem(key);
-    } catch (error) {
-      console.error('게임 데이터 삭제 실패:', error);
-      throw error;
-    }
+    // 서버에서 settlement 삭제 시 FK cascade로 자동 처리
   },
 };

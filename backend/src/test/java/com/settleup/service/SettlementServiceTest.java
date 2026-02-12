@@ -6,7 +6,15 @@ import com.settleup.domain.settlement.SettlementType;
 import com.settleup.dto.SettlementCreateRequest;
 import com.settleup.dto.SettlementResponse;
 import com.settleup.exception.ResourceNotFoundException;
+import com.settleup.repository.ExpenseRepository;
+import com.settleup.repository.ExpenseSplitRepository;
+import com.settleup.repository.ParticipantRepository;
 import com.settleup.repository.SettlementRepository;
+import com.settleup.repository.SettlementResultRepository;
+import com.settleup.repository.SettlementMemberRepository;
+import com.settleup.repository.SettlementInviteCodeRepository;
+import com.settleup.repository.GameRoundRepository;
+import com.settleup.repository.GameRoundEntryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +46,30 @@ class SettlementServiceTest {
 
     @Mock
     private SettlementRepository settlementRepository;
+
+    @Mock
+    private ExpenseRepository expenseRepository;
+
+    @Mock
+    private ExpenseSplitRepository expenseSplitRepository;
+
+    @Mock
+    private ParticipantRepository participantRepository;
+
+    @Mock
+    private SettlementResultRepository settlementResultRepository;
+
+    @Mock
+    private SettlementMemberRepository settlementMemberRepository;
+
+    @Mock
+    private SettlementInviteCodeRepository settlementInviteCodeRepository;
+
+    @Mock
+    private GameRoundRepository gameRoundRepository;
+
+    @Mock
+    private GameRoundEntryRepository gameRoundEntryRepository;
 
     @InjectMocks
     private SettlementService settlementService;
@@ -200,6 +232,15 @@ class SettlementServiceTest {
     void deleteSettlement_Success() {
         // given
         when(settlementRepository.existsById(settlementId)).thenReturn(true);
+        when(gameRoundRepository.findBySettlementIdOrderByRoundNumberAsc(settlementId))
+                .thenReturn(Arrays.asList());
+        when(expenseRepository.findBySettlementIdOrderByExpenseDateDesc(settlementId))
+                .thenReturn(Arrays.asList());
+        doNothing().when(settlementInviteCodeRepository).deleteBySettlementId(settlementId);
+        doNothing().when(settlementMemberRepository).deleteBySettlementId(settlementId);
+        doNothing().when(settlementResultRepository).deleteBySettlementId(settlementId);
+        doNothing().when(expenseRepository).deleteBySettlementId(settlementId);
+        doNothing().when(participantRepository).deleteBySettlementId(settlementId);
         doNothing().when(settlementRepository).deleteById(settlementId);
 
         // when
@@ -207,6 +248,12 @@ class SettlementServiceTest {
 
         // then
         verify(settlementRepository, times(1)).existsById(settlementId);
+        verify(settlementInviteCodeRepository, times(1)).deleteBySettlementId(settlementId);
+        verify(settlementMemberRepository, times(1)).deleteBySettlementId(settlementId);
+        verify(settlementResultRepository, times(1)).deleteBySettlementId(settlementId);
+        verify(expenseRepository, times(1)).findBySettlementIdOrderByExpenseDateDesc(settlementId);
+        verify(expenseRepository, times(1)).deleteBySettlementId(settlementId);
+        verify(participantRepository, times(1)).deleteBySettlementId(settlementId);
         verify(settlementRepository, times(1)).deleteById(settlementId);
     }
 
