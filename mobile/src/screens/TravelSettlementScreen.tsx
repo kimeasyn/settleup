@@ -366,28 +366,43 @@ export default function TravelSettlementScreen() {
           onPress={handleViewSettlementResult}
           activeOpacity={0.8}
         >
-          <Text style={styles.resultButtonText}>여행 정산 결과</Text>
+          <Text style={styles.actionButtonText}>여행 정산 결과</Text>
         </TouchableOpacity>
 
         {/* 수정 · 삭제 (완료 상태가 아닐 때만) */}
         {!isCompleted && (
           <View style={styles.editDeleteRow}>
-            <TouchableOpacity onPress={() => setEditSettlementModalVisible(true)}>
-              <Text style={styles.linkText}>수정</Text>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => setEditSettlementModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="pencil-outline" size={18} color={Colors.primary.contrast} />
+              <Text style={styles.actionButtonText}>수정</Text>
             </TouchableOpacity>
-            <Text style={styles.linkDivider}>|</Text>
-            <TouchableOpacity onPress={handleDeleteSettlement}>
-              <Text style={[styles.linkText, { color: Colors.status.error }]}>삭제</Text>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDeleteSettlement}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color={Colors.primary.contrast} />
+              <Text style={styles.actionButtonText}>삭제</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* 정산 완료/다시 열기 */}
         <TouchableOpacity
-          style={styles.toggleCompleteLink}
+          style={[styles.toggleCompleteButton, isCompleted ? styles.reopenStyle : styles.completeStyle]}
           onPress={handleToggleComplete}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.linkText, { color: isCompleted ? Colors.status.warning : Colors.status.success }]}>
+          <MaterialCommunityIcons
+            name={isCompleted ? 'lock-open-outline' : 'check-circle-outline'}
+            size={18}
+            color={Colors.primary.contrast}
+          />
+          <Text style={styles.actionButtonText}>
             {isCompleted ? '정산 다시 열기' : '정산 완료'}
           </Text>
         </TouchableOpacity>
@@ -560,33 +575,56 @@ const styles = StyleSheet.create({
   },
   resultButton: {
     backgroundColor: Colors.status.success,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 14,
     borderRadius: Spacing.radius.md,
-    alignItems: 'center',
-    marginBottom: Spacing.spacing.xl,
+    marginBottom: Spacing.spacing.md,
   },
-  resultButtonText: {
-    ...Typography.styles.buttonLarge,
+  actionButtonText: {
+    ...Typography.styles.button,
     color: Colors.text.inverse,
   },
   editDeleteRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     gap: 12,
     marginBottom: Spacing.spacing.md,
   },
-  linkText: {
-    ...Typography.styles.body2,
-    color: Colors.primary.main,
-  },
-  linkDivider: {
-    ...Typography.styles.body2,
-    color: Colors.text.disabled,
-  },
-  toggleCompleteLink: {
+  editButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.spacing.sm,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: Spacing.radius.md,
+    backgroundColor: Colors.primary.main,
+  },
+  deleteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: Spacing.radius.md,
+    backgroundColor: Colors.status.error,
+  },
+  toggleCompleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: Spacing.radius.md,
     marginBottom: Spacing.spacing.lg,
+  },
+  completeStyle: {
+    backgroundColor: Colors.status.success,
+  },
+  reopenStyle: {
+    backgroundColor: Colors.status.warning,
   },
 });
