@@ -20,15 +20,17 @@ import { Participant } from '../models/Participant';
  */
 export const validateRound = (
   roundEntries: GameRoundEntry[],
-  participants: Participant[]
+  participants: Participant[],
+  excludedParticipantIds: string[] = []
 ): RoundValidationResult => {
   // 총합 계산
   const totalAmount = roundEntries.reduce((sum, entry) => sum + entry.amount, 0);
 
-  // 참가자별 엔트리 확인
+  // 참가자별 엔트리 확인 (제외된 참가자는 누락 체크에서 제외)
+  const excludedSet = new Set(excludedParticipantIds);
   const entryParticipantIds = new Set(roundEntries.map(entry => entry.participantId));
   const missingParticipants = participants
-    .filter(p => p.isActive && !entryParticipantIds.has(p.id))
+    .filter(p => p.isActive && !excludedSet.has(p.id) && !entryParticipantIds.has(p.id))
     .map(p => p.name);
 
   // 검증 결과
@@ -59,9 +61,11 @@ export const calculateParticipantGameStatus = (
   return participants
     .filter(p => p.isActive)
     .map(participant => {
-      // 해당 참가자의 모든 엔트리 찾기
+      // 해당 참가자의 모든 엔트리 찾기 (제외된 라운드 제외)
       const participantEntries: GameRoundEntry[] = [];
       allRounds.forEach(round => {
+        const excludedSet = new Set(round.excludedParticipantIds || []);
+        if (excludedSet.has(participant.id)) return;
         const entry = round.entries.find(e => e.participantId === participant.id);
         if (entry) {
           participantEntries.push(entry);
@@ -216,10 +220,12 @@ export const formatGameAmount = (amount: number): string => {
  */
 export const initializeRoundEntries = (
   roundId: string,
-  participants: Participant[]
+  participants: Participant[],
+  excludedParticipantIds: string[] = []
 ): Omit<GameRoundEntry, 'id' | 'createdAt'>[] => {
+  const excludedSet = new Set(excludedParticipantIds);
   return participants
-    .filter(p => p.isActive)
+    .filter(p => p.isActive && !excludedSet.has(p.id))
     .map(participant => ({
       roundId,
       participantId: participant.id,

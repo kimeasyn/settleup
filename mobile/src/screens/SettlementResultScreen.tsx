@@ -12,7 +12,7 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { SettlementResult, ParticipantSummary, Transfer } from '../models/SettlementResult';
-import { calculateSettlement } from '../services/api/settlementService';
+import { calculateSettlement, getLatestResult } from '../services/api/settlementService';
 
 type SettlementResultScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -40,8 +40,19 @@ const SettlementResultScreen = () => {
       setLoading(true);
       setError(null);
 
-      // 정산 계산 실행 (나머지 지불자와 추가 부담 금액 전달)
-      const data = await calculateSettlement(settlementId, remainderPayerId, remainderAmount);
+      // 먼저 저장된 결과가 있는지 확인
+      try {
+        const savedResult = await getLatestResult(settlementId);
+        if (savedResult) {
+          setResult(savedResult);
+          return;
+        }
+      } catch {
+        // 저장된 결과가 없으면 새로 계산
+      }
+
+      // 정산 계산 실행 (나머지 지불자와 추가 부담 금액 전달) + 저장
+      const data = await calculateSettlement(settlementId, remainderPayerId, remainderAmount, true);
       setResult(data);
     } catch (err) {
       console.error('정산 결과 로드 실패:', err);

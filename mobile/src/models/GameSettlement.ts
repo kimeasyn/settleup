@@ -67,6 +67,9 @@ export interface GameRoundWithEntries {
 
   /** 라운드 완료 여부 */
   isValid: boolean;
+
+  /** 이 라운드에서 제외된 참가자 ID 목록 */
+  excludedParticipantIds?: string[];
 }
 
 /**

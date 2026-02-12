@@ -22,6 +22,8 @@ import {
   formatGameAmount,
   createGameSummary,
 } from '../utils/gameSettlementUtils';
+import { updateSettlement } from '../services/api/settlementService';
+import { SettlementStatus } from '../models/Settlement';
 
 /**
  * GameSettlementResultScreen
@@ -46,18 +48,22 @@ export default function GameSettlementResultScreen() {
         { text: '취소', style: 'cancel' },
         {
           text: '완료',
-          onPress: () => {
-            // TODO: 백엔드 API 연동 시 실제 정산 완료 처리
-            Alert.alert(
-              '완료',
-              '게임 정산이 완료되었습니다.',
-              [
-                {
-                  text: '확인',
-                  onPress: () => navigation.goBack(),
-                },
-              ]
-            );
+          onPress: async () => {
+            try {
+              await updateSettlement(settlementId, { status: SettlementStatus.COMPLETED });
+              Alert.alert(
+                '완료',
+                '게임 정산이 완료되었습니다.',
+                [
+                  {
+                    text: '확인',
+                    onPress: () => navigation.goBack(),
+                  },
+                ]
+              );
+            } catch (error) {
+              Alert.alert('오류', '정산 완료 처리에 실패했습니다.');
+            }
           },
         },
       ]

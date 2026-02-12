@@ -271,29 +271,40 @@ export default function ExpenseSplitModal({
               {/* 참가자별 분담 금액 */}
               <View style={styles.participantSection}>
                 <Text style={styles.sectionTitle}>참가자별 분담 금액</Text>
-                {participantSplits.map((split) => (
-                  <View key={split.participantId} style={styles.participantRow}>
-                    <Text style={styles.participantName}>
-                      {getParticipantName(split.participantId)}
-                    </Text>
-                    <View style={styles.amountInputContainer}>
-                      <TextInput
-                        style={[
-                          styles.amountInput,
-                          splitType === 'EQUAL' && styles.amountInputDisabled,
-                        ]}
-                        value={split.share.toString()}
-                        onChangeText={(text) =>
-                          handleParticipantShareChange(split.participantId, text)
-                        }
-                        keyboardType="numeric"
-                        editable={splitType === 'MANUAL'}
-                        placeholderTextColor="#9E9E9E"
-                      />
-                      <Text style={styles.currency}>원</Text>
+                {participantSplits.map((split) => {
+                  const exceedsTotal = split.share > expense.amount;
+                  return (
+                    <View key={split.participantId}>
+                      <View style={styles.participantRow}>
+                        <Text style={styles.participantName}>
+                          {getParticipantName(split.participantId)}
+                        </Text>
+                        <View style={styles.amountInputContainer}>
+                          <TextInput
+                            style={[
+                              styles.amountInput,
+                              splitType === 'EQUAL' && styles.amountInputDisabled,
+                              exceedsTotal && styles.amountInputExceeds,
+                            ]}
+                            value={split.share.toString()}
+                            onChangeText={(text) =>
+                              handleParticipantShareChange(split.participantId, text)
+                            }
+                            keyboardType="numeric"
+                            editable={splitType === 'MANUAL'}
+                            placeholderTextColor="#9E9E9E"
+                          />
+                          <Text style={styles.currency}>원</Text>
+                        </View>
+                      </View>
+                      {exceedsTotal && (
+                        <Text style={styles.splitWarning}>
+                          개별 분담 금액이 지출 금액을 초과합니다
+                        </Text>
+                      )}
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
 
               {/* 합계 표시 */}
@@ -487,6 +498,17 @@ const styles = StyleSheet.create({
   amountInputDisabled: {
     backgroundColor: '#F5F5F5',
     color: '#9E9E9E',
+  },
+  amountInputExceeds: {
+    borderColor: '#F44336',
+    borderWidth: 2,
+  },
+  splitWarning: {
+    fontSize: 11,
+    color: '#F44336',
+    marginTop: -4,
+    marginBottom: 4,
+    marginLeft: 4,
   },
   currency: {
     fontSize: 14,
