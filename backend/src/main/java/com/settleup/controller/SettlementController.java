@@ -7,6 +7,8 @@ import com.settleup.dto.SettlementUpdateRequest;
 import com.settleup.exception.ErrorResponse;
 import com.settleup.service.SettlementService;
 import com.settleup.service.SettlementCalculationService;
+import com.settleup.service.SettlementResultService;
+import com.settleup.service.SettlementMemberService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -41,6 +44,8 @@ public class SettlementController {
 
     private final SettlementService settlementService;
     private final SettlementCalculationService settlementCalculationService;
+    private final SettlementResultService settlementResultService;
+    private final SettlementMemberService settlementMemberService;
 
     /**
      * 정산 생성
@@ -69,15 +74,20 @@ public class SettlementController {
                     description = "정산 생성 요청 정보",
                     required = true
             )
-            SettlementCreateRequest request) {
+            SettlementCreateRequest request,
+            @AuthenticationPrincipal UUID userId) {
 
         log.info("POST /settlements - Creating settlement: {}", request.getTitle());
 
-        // TODO: 실제로는 인증된 사용자 ID를 사용
-        // 현재는 테스트용으로 샘플 사용자 ID 사용
-        UUID creatorId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        // 인증된 사용자 ID 사용 (미인증 시 기본값)
+        UUID creatorId = userId != null ? userId : UUID.fromString("00000000-0000-0000-0000-000000000001");
 
         SettlementResponse response = settlementService.createSettlement(request, creatorId);
+
+        // OWNER 멤버 자동 생성
+        if (userId != null) {
+            settlementMemberService.createOwnerMember(response.getId(), userId);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -281,12 +291,49 @@ public class SettlementController {
             @Parameter(description = "나머지 지불 참가자 ID (선택)", required = false)
             @RequestParam(required = false) UUID remainderPayerId,
             @Parameter(description = "추가 부담 금액 (선택)", required = false)
-            @RequestParam(required = false) BigDecimal remainderAmount) {
+            @RequestParam(required = false) BigDecimal remainderAmount,
+            @Parameter(description = "결과를 DB에 저장 여부 (선택)", required = false)
+            @RequestParam(required = false, defaultValue = "false") boolean save) {
 
-        log.info("POST /settlements/{}/calculate - Calculating settlement (remainderPayerId: {}, remainderAmount: {})",
-                id, remainderPayerId, remainderAmount);
+        log.info("POST /settlements/{}/calculate - Calculating settlement (remainderPayerId: {}, remainderAmount: {}, save: {})",
+                id, remainderPayerId, remainderAmount, save);
 
         SettlementResultResponse response = settlementCalculationService.calculateSettlement(id, remainderPayerId, remainderAmount);
+
+        if (save) {
+            settlementResultService.saveResult(response);
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 최신 저장된 정산 결과 조회
+     * GET /api/v1/settlements/{id}/results/latest
+     */
+    @Operation(
+            summary = "최신 저장된 정산 결과 조회",
+            description = "DB에 저장된 가장 최근 정산 결과를 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = SettlementResultResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "저장된 결과 없음",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    @GetMapping("/{id}/results/latest")
+    public ResponseEntity<SettlementResultResponse> getLatestResult(
+            @Parameter(description = "정산 ID", required = true)
+            @PathVariable UUID id) {
+        log.info("GET /settlements/{}/results/latest - Getting latest result", id);
+
+        SettlementResultResponse response = settlementResultService.getLatestResult(id);
 
         return ResponseEntity.ok(response);
     }

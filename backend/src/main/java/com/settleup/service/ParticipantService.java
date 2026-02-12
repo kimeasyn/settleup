@@ -1,10 +1,14 @@
 package com.settleup.service;
 
 import com.settleup.domain.participant.Participant;
+import com.settleup.domain.settlement.Settlement;
+import com.settleup.domain.settlement.SettlementStatus;
 import com.settleup.dto.ParticipantDto.ParticipantRequest;
 import com.settleup.dto.ParticipantDto.ParticipantResponse;
 import com.settleup.exception.BusinessException;
 import com.settleup.exception.ResourceNotFoundException;
+import com.settleup.repository.ExpenseRepository;
+import com.settleup.repository.ExpenseSplitRepository;
 import com.settleup.repository.ParticipantRepository;
 import com.settleup.repository.SettlementRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,8 @@ public class ParticipantService {
 
     private final ParticipantRepository participantRepository;
     private final SettlementRepository settlementRepository;
+    private final ExpenseRepository expenseRepository;
+    private final ExpenseSplitRepository expenseSplitRepository;
 
     /**
      * 참가자 추가
@@ -37,9 +43,11 @@ public class ParticipantService {
         log.info("Adding participant to settlement: settlementId={}, name={}",
                 settlementId, request.getName());
 
-        // 정산 존재 확인
-        if (!settlementRepository.existsById(settlementId)) {
-            throw new ResourceNotFoundException("Settlement", "id", settlementId);
+        // 정산 존재 및 상태 확인
+        Settlement settlement = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", settlementId));
+        if (settlement.getStatus() == SettlementStatus.COMPLETED) {
+            throw new BusinessException("완료된 정산에는 참가자를 추가할 수 없습니다.");
         }
 
         // 동일 정산에 같은 이름의 참가자가 이미 존재하는지 확인
@@ -121,6 +129,13 @@ public class ParticipantService {
         Participant participant = participantRepository.findById(participantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Participant", "id", participantId));
 
+        // 완료된 정산 수정 차단
+        Settlement settlement = settlementRepository.findById(participant.getSettlementId())
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", participant.getSettlementId()));
+        if (settlement.getStatus() == SettlementStatus.COMPLETED) {
+            throw new BusinessException("완료된 정산의 참가자 상태를 변경할 수 없습니다.");
+        }
+
         participant.setIsActive(isActive);
         Participant updated = participantRepository.save(participant);
 
@@ -138,12 +153,31 @@ public class ParticipantService {
     public void deleteParticipant(UUID participantId) {
         log.info("Deleting participant: id={}", participantId);
 
-        if (!participantRepository.existsById(participantId)) {
-            throw new ResourceNotFoundException("Participant", "id", participantId);
+        Participant participant = participantRepository.findById(participantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Participant", "id", participantId));
+
+        // 완료된 정산 수정 차단
+        Settlement settlement = settlementRepository.findById(participant.getSettlementId())
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", participant.getSettlementId()));
+        if (settlement.getStatus() == SettlementStatus.COMPLETED) {
+            throw new BusinessException("완료된 정산의 참가자를 삭제할 수 없습니다.");
         }
 
-        // TODO: 지출 내역 참조 확인 로직 추가 (Phase 3에서 구현)
-        // 현재는 단순 삭제만 수행
+        // 지출자로 참조되는지 확인
+        var payerExpenses = expenseRepository.findByPayerIdOrderByExpenseDateDesc(participantId);
+        if (!payerExpenses.isEmpty()) {
+            throw new BusinessException(
+                String.format("해당 참가자가 지출자로 등록된 지출 내역이 %d건 있어 삭제할 수 없습니다. 먼저 해당 지출을 삭제해주세요.", payerExpenses.size())
+            );
+        }
+
+        // 분담 내역에 참조되는지 확인
+        var splits = expenseSplitRepository.findByParticipantId(participantId);
+        if (!splits.isEmpty()) {
+            throw new BusinessException(
+                String.format("해당 참가자가 분담 내역에 %d건 포함되어 있어 삭제할 수 없습니다. 먼저 해당 분담 설정을 변경해주세요.", splits.size())
+            );
+        }
 
         participantRepository.deleteById(participantId);
         log.info("Participant deleted successfully: id={}", participantId);

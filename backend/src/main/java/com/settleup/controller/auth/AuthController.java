@@ -30,7 +30,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/kakao")
-    @Operation(summary = "Kakao 소셜 로그인", description = "Kakao Access Token으로 로그인")
+    @Operation(summary = "Kakao 소셜 로그인", description = "Kakao OIDC ID Token으로 로그인")
     public ResponseEntity<TokenResponse> kakaoLogin(@Valid @RequestBody SocialLoginRequest request) {
         TokenResponse response = authService.socialLogin("KAKAO", request.getToken());
         return ResponseEntity.ok(response);

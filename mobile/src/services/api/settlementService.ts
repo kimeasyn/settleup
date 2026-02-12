@@ -21,6 +21,7 @@ import {
   ExpenseSplitRequest,
 } from '../../models/Expense';
 import { SettlementResult } from '../../models/SettlementResult';
+import { SettlementMember, InviteCodeResponse } from '../../models/SettlementMember';
 
 /**
  * 정산 생성
@@ -207,6 +208,30 @@ export const updateParticipant = async (
 };
 
 /**
+ * 참가자 활성/비활성 토글
+ * @param settlementId 정산 ID
+ * @param participantId 참가자 ID
+ * @param isActive 활성 상태
+ * @returns 업데이트된 참가자 정보
+ */
+export const toggleParticipantStatus = async (
+  settlementId: string,
+  participantId: string,
+  isActive: boolean
+): Promise<Participant> => {
+  try {
+    const response = await apiClient.patch<Participant>(
+      `/settlements/${settlementId}/participants/${participantId}/toggle`,
+      { isActive }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[toggleParticipantStatus] Error:', error);
+    throw error;
+  }
+};
+
+/**
  * 참가자 삭제
  * @param settlementId 정산 ID
  * @param participantId 참가자 ID
@@ -341,7 +366,8 @@ export const setExpenseSplits = async (
 export const calculateSettlement = async (
   settlementId: string,
   remainderPayerId?: string,
-  remainderAmount?: number
+  remainderAmount?: number,
+  save: boolean = false
 ): Promise<SettlementResult> => {
   try {
     const params: any = {};
@@ -350,6 +376,9 @@ export const calculateSettlement = async (
     }
     if (remainderAmount !== undefined && remainderAmount !== null) {
       params.remainderAmount = remainderAmount;
+    }
+    if (save) {
+      params.save = true;
     }
 
     const response = await apiClient.post<SettlementResult>(
@@ -360,6 +389,78 @@ export const calculateSettlement = async (
     return response.data;
   } catch (error) {
     console.error('[calculateSettlement] Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * 최신 저장된 정산 결과 조회
+ * @param settlementId 정산 ID
+ * @returns 저장된 정산 결과
+ */
+export const getLatestResult = async (
+  settlementId: string
+): Promise<SettlementResult> => {
+  try {
+    const response = await apiClient.get<SettlementResult>(
+      `/settlements/${settlementId}/results/latest`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[getLatestResult] Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * 정산 멤버 목록 조회
+ */
+export const getSettlementMembers = async (
+  settlementId: string
+): Promise<SettlementMember[]> => {
+  try {
+    const response = await apiClient.get<SettlementMember[]>(
+      `/settlements/${settlementId}/members`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[getSettlementMembers] Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * 초대 코드 생성
+ */
+export const generateInviteCode = async (
+  settlementId: string
+): Promise<InviteCodeResponse> => {
+  try {
+    const response = await apiClient.post<InviteCodeResponse>(
+      `/settlements/${settlementId}/members/invite`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[generateInviteCode] Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * 초대 코드로 참가
+ */
+export const joinByInviteCode = async (
+  settlementId: string,
+  code: string
+): Promise<SettlementMember> => {
+  try {
+    const response = await apiClient.post<SettlementMember>(
+      `/settlements/${settlementId}/members/join`,
+      { code }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('[joinByInviteCode] Error:', error);
     throw error;
   }
 };
@@ -383,6 +484,10 @@ export const SettlementService = {
   deleteExpense,
   setExpenseSplits,
   calculateSettlement,
+  getLatestResult,
+  getSettlementMembers,
+  generateInviteCode,
+  joinByInviteCode,
 };
 
 export default SettlementService;
