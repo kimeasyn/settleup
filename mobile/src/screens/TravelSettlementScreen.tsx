@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,41 +9,21 @@ import {
   Alert,
 } from 'react-native';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 import { Settlement, SettlementStatus } from '../models/Settlement';
 import { Participant } from '../models/Participant';
 import { ExpenseWithDetails } from '../models/Expense';
-import ParticipantList from '../components/ParticipantList';
-import ExpenseItem from '../components/ExpenseItem';
-import AddParticipantModal from '../components/AddParticipantModal';
-import AddExpenseModal from '../components/AddExpenseModal';
-import EditExpenseModal from '../components/EditExpenseModal';
-import ExpenseSplitModal from '../components/ExpenseSplitModal';
-import EditParticipantModal from '../components/EditParticipantModal';
 import RemainderHandlingModal from '../components/RemainderHandlingModal';
-import ParticipantBalanceSummary from '../components/ParticipantBalanceSummary';
 import EditSettlementModal from '../components/EditSettlementModal';
-import AnimatedButton from '../components/AnimatedButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   getSettlement,
   getParticipants,
   getExpenses,
-  deleteExpense,
-  updateExpense,
-  setExpenseSplits,
-  toggleParticipantStatus,
-  deleteParticipant,
-  updateParticipant,
-  addParticipant,
-  addExpense,
   updateSettlement,
   deleteSettlement,
-  getSettlementMembers,
-  generateInviteCode,
 } from '../services/api/settlementService';
-import { SettlementMember } from '../models/SettlementMember';
-import { AddParticipantRequest, UpdateParticipantRequest } from '../models/Participant';
-import { CreateExpenseRequest, UpdateExpenseRequest, ExpenseSplitRequest } from '../models/Expense';
 import { UpdateSettlementRequest } from '../models/Settlement';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
@@ -51,58 +31,34 @@ import { Spacing, createShadowStyle } from '../constants/Spacing';
 
 /**
  * TravelSettlementScreen
- * 여행 정산 상세 화면
+ * 여행 정산 상세 화면 (간소화)
  */
 export default function TravelSettlementScreen() {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { settlementId } = route.params as { settlementId: string };
 
   const [settlement, setSettlement] = useState<Settlement | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
-  const [members, setMembers] = useState<SettlementMember[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 모달 상태
-  const [addParticipantModalVisible, setAddParticipantModalVisible] = useState(false);
-  const [editParticipantModalVisible, setEditParticipantModalVisible] = useState(false);
-  const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
-  const [editExpenseModalVisible, setEditExpenseModalVisible] = useState(false);
-  const [expenseSplitModalVisible, setExpenseSplitModalVisible] = useState(false);
   const [remainderModalVisible, setRemainderModalVisible] = useState(false);
   const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
   const [remainder, setRemainder] = useState(0);
-  const [selectedExpense, setSelectedExpense] = useState<ExpenseWithDetails | null>(null);
-  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
 
-  /**
-   * 데이터 로드
-   */
   const loadData = async () => {
     try {
       setLoading(true);
-
-      // 정산 정보 로드
-      const settlementData = await getSettlement(settlementId);
+      const [settlementData, participantsData, expensesData] = await Promise.all([
+        getSettlement(settlementId),
+        getParticipants(settlementId),
+        getExpenses(settlementId),
+      ]);
       setSettlement(settlementData);
-
-      // 참가자 목록 로드
-      const participantsData = await getParticipants(settlementId);
       setParticipants(participantsData);
-
-      // 지출 목록 로드
-      const expensesData = await getExpenses(settlementId);
-      setExpenses(expensesData);
-
-      // 멤버 목록 로드 (실패해도 무시 - 인증 미적용 환경 대응)
-      try {
-        const membersData = await getSettlementMembers(settlementId);
-        setMembers(membersData);
-      } catch {
-        // 멤버 API 미지원 시 무시
-      }
+      setExpenses(expensesData as ExpenseWithDetails[]);
     } catch (error) {
       console.error('데이터 로드 실패:', error);
       Alert.alert('오류', '데이터를 불러올 수 없습니다.');
@@ -111,154 +67,72 @@ export default function TravelSettlementScreen() {
     }
   };
 
-  /**
-   * Pull-to-refresh
-   */
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
-  /**
-   * 화면 포커스 시 데이터 새로고침
-   */
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [settlementId])
   );
 
-  /**
-   * 참가자 활성/비활성 토글
-   */
-  const handleToggleParticipant = async (participantId: string, isActive: boolean) => {
-    try {
-      await toggleParticipantStatus(settlementId, participantId, isActive);
-      await loadData();
-      Alert.alert('완료', isActive ? '참가자를 활성화했습니다.' : '참가자를 비활성화했습니다.');
-    } catch (error) {
-      console.error('참가자 상태 변경 실패:', error);
-      Alert.alert('오류', '참가자 상태를 변경할 수 없습니다.');
-    }
+  const isCompleted = settlement?.status === SettlementStatus.COMPLETED;
+
+  const calculateStats = () => {
+    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const activeParticipants = participants.filter(p => p.isActive);
+    const perPersonAverage = activeParticipants.length > 0
+      ? totalExpense / activeParticipants.length
+      : 0;
+    return {
+      totalExpense,
+      expenseCount: expenses.length,
+      participantCount: activeParticipants.length,
+      perPersonAverage,
+    };
+  };
+
+  const formatAmount = (amount: number): string => {
+    return new Intl.NumberFormat('ko-KR').format(amount);
+  };
+
+  const calculateRemainder = (): number => {
+    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const activeParticipants = participants.filter(p => p.isActive);
+    if (activeParticipants.length === 0) return 0;
+    const perPerson = Math.floor(totalExpense / activeParticipants.length);
+    return totalExpense - (perPerson * activeParticipants.length);
   };
 
   /**
-   * 참가자 삭제
+   * 잔액 계산 (ParticipantBalanceSummary 로직 인라인)
    */
-  const handleDeleteParticipant = async (participantId: string) => {
-    try {
-      await deleteParticipant(settlementId, participantId);
-      await loadData();
-      Alert.alert('완료', '참가자를 삭제했습니다.');
-    } catch (error) {
-      console.error('참가자 삭제 실패:', error);
-      Alert.alert('오류', '참가자를 삭제할 수 없습니다.\n관련 지출 내역이 있을 수 있습니다.');
-    }
+  const calculateBalances = () => {
+    const activeParticipants = participants.filter(p => p.isActive);
+    if (activeParticipants.length === 0) return [];
+
+    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const perPerson = Math.floor(totalExpense / activeParticipants.length);
+    const remainderVal = totalExpense - (perPerson * activeParticipants.length);
+
+    const paidMap = new Map<string, number>();
+    activeParticipants.forEach(p => paidMap.set(p.id, 0));
+    expenses.forEach(expense => {
+      const current = paidMap.get(expense.payerId) || 0;
+      paidMap.set(expense.payerId, current + expense.amount);
+    });
+
+    return activeParticipants.map((participant, index) => {
+      const totalPaid = paidMap.get(participant.id) || 0;
+      const shouldPay = index === 0 ? perPerson + remainderVal : perPerson;
+      const balance = totalPaid - shouldPay;
+      return { id: participant.id, name: participant.name, balance };
+    });
   };
 
-  /**
-   * 지출 삭제
-   */
-  const handleDeleteExpense = async (expenseId: string) => {
-    try {
-      await deleteExpense(settlementId, expenseId);
-      await loadData();
-      Alert.alert('완료', '지출을 삭제했습니다.');
-    } catch (error) {
-      console.error('지출 삭제 실패:', error);
-      Alert.alert('오류', '지출을 삭제할 수 없습니다.');
-    }
-  };
-
-  /**
-   * 참가자 추가 제출
-   */
-  const handleAddParticipant = async (data: AddParticipantRequest) => {
-    await addParticipant(settlementId, data);
-    await loadData();
-  };
-
-  /**
-   * 지출 추가 제출
-   */
-  const handleAddExpense = async (data: CreateExpenseRequest) => {
-    await addExpense(settlementId, data);
-    await loadData();
-  };
-
-  /**
-   * 지출 수정
-   */
-  const handleEditExpense = (expense: ExpenseWithDetails) => {
-    setSelectedExpense(expense);
-    setEditExpenseModalVisible(true);
-  };
-
-  /**
-   * 지출 수정 제출
-   */
-  const handleUpdateExpense = async (data: UpdateExpenseRequest) => {
-    if (!selectedExpense) return;
-
-    try {
-      await updateExpense(settlementId, selectedExpense.id, data);
-      await loadData();
-    } catch (error) {
-      console.error('지출 수정 실패:', error);
-      throw error;
-    }
-  };
-
-  /**
-   * 참가자 수정
-   */
-  const handleEditParticipant = (participant: Participant) => {
-    setSelectedParticipant(participant);
-    setEditParticipantModalVisible(true);
-  };
-
-  /**
-   * 참가자 수정 제출
-   */
-  const handleUpdateParticipant = async (data: UpdateParticipantRequest) => {
-    if (!selectedParticipant) return;
-
-    try {
-      await updateParticipant(settlementId, selectedParticipant.id, data);
-      await loadData();
-    } catch (error) {
-      console.error('참가자 수정 실패:', error);
-      throw error;
-    }
-  };
-
-  /**
-   * 지출 분담 설정
-   */
-  const handleSetExpenseSplits = (expense: ExpenseWithDetails) => {
-    setSelectedExpense(expense);
-    setExpenseSplitModalVisible(true);
-  };
-
-  /**
-   * 지출 분담 설정 제출
-   */
-  const handleSubmitExpenseSplits = async (data: ExpenseSplitRequest) => {
-    if (!selectedExpense) return;
-
-    try {
-      await setExpenseSplits(settlementId, selectedExpense.id, data);
-      await loadData();
-    } catch (error) {
-      console.error('지출 분담 설정 실패:', error);
-      throw error;
-    }
-  };
-
-  /**
-   * 정산 정보 수정
-   */
   const handleUpdateSettlement = async (data: UpdateSettlementRequest) => {
     try {
       await updateSettlement(settlementId, data);
@@ -269,18 +143,12 @@ export default function TravelSettlementScreen() {
     }
   };
 
-  /**
-   * 정산 삭제
-   */
   const handleDeleteSettlement = () => {
     Alert.alert(
       '정산 삭제',
       '정산을 삭제하시겠습니까? 관련된 모든 데이터가 삭제됩니다.',
       [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
+        { text: '취소', style: 'cancel' },
         {
           text: '삭제',
           style: 'destructive',
@@ -297,46 +165,6 @@ export default function TravelSettlementScreen() {
         },
       ]
     );
-  };
-
-  /**
-   * 통계 계산
-   */
-  const calculateStats = () => {
-    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const activeParticipants = participants.filter(p => p.isActive);
-    const perPersonAverage = activeParticipants.length > 0
-      ? totalExpense / activeParticipants.length
-      : 0;
-
-    return {
-      totalExpense,
-      expenseCount: expenses.length,
-      participantCount: activeParticipants.length,
-      perPersonAverage,
-    };
-  };
-
-  const isCompleted = settlement?.status === SettlementStatus.COMPLETED;
-
-  /**
-   * 정산 완료/다시 열기 토글
-   */
-  /**
-   * 초대 코드 생성 및 공유
-   */
-  const handleInvite = async () => {
-    try {
-      const invite = await generateInviteCode(settlementId);
-      Alert.alert(
-        '초대 코드',
-        `초대 코드: ${invite.code}\n\n유효 기간: 24시간\n이 코드를 공유하여 멤버를 초대하세요.`,
-        [{ text: '확인' }]
-      );
-    } catch (error: any) {
-      const message = error.response?.data?.message || '초대 코드 생성에 실패했습니다.';
-      Alert.alert('오류', message);
-    }
   };
 
   const handleToggleComplete = () => {
@@ -381,71 +209,27 @@ export default function TravelSettlementScreen() {
     }
   };
 
-  const stats = calculateStats();
-
-  /**
-   * 금액 포맷팅
-   */
-  const formatAmount = (amount: number): string => {
-    return new Intl.NumberFormat('ko-KR').format(amount);
-  };
-
-  /**
-   * 나머지 계산
-   */
-  const calculateRemainder = (): number => {
-    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const activeParticipants = participants.filter(p => p.isActive);
-
-    if (activeParticipants.length === 0) {
-      return 0;
-    }
-
-    // 1인당 금액 (소수점 버림)
-    const perPerson = Math.floor(totalExpense / activeParticipants.length);
-
-    // 나머지 = 총액 - (1인당 금액 * 참가자 수)
-    const remainder = totalExpense - (perPerson * activeParticipants.length);
-
-    return remainder;
-  };
-
-  /**
-   * 정산 결과 보기 핸들러
-   */
   const handleViewSettlementResult = () => {
-    // 유효성 검사
     const activeParticipants = participants.filter(p => p.isActive);
-
     if (activeParticipants.length === 0) {
       Alert.alert('오류', '활성 참가자가 없습니다.');
       return;
     }
-
     if (expenses.length === 0) {
       Alert.alert('오류', '지출 내역이 없습니다.');
       return;
     }
-
-    // 나머지 계산
     const calculatedRemainder = calculateRemainder();
-
     if (calculatedRemainder > 0) {
-      // 나머지가 있으면 모달 표시
       setRemainder(calculatedRemainder);
       setRemainderModalVisible(true);
     } else {
-      // 나머지가 없으면 바로 결과 화면으로 이동
       navigation.navigate('SettlementResult', { settlementId });
     }
   };
 
-  /**
-   * 나머지 처리 확인 핸들러
-   */
   const handleRemainderConfirm = (payerId: string, amount: number) => {
     setRemainderModalVisible(false);
-    // 나머지 처리 정보를 포함하여 결과 화면으로 이동
     navigation.navigate('SettlementResult', {
       settlementId,
       remainderPayerId: payerId,
@@ -469,6 +253,22 @@ export default function TravelSettlementScreen() {
     );
   }
 
+  const stats = calculateStats();
+  const balances = calculateBalances();
+
+  const getBalanceColor = (balance: number): string => {
+    if (balance > 0) return Colors.status.success;
+    if (balance < 0) return Colors.status.error;
+    return Colors.text.disabled;
+  };
+
+  const getBalanceText = (balance: number): string => {
+    const abs = new Intl.NumberFormat('ko-KR').format(Math.abs(balance));
+    if (balance > 0) return `+${abs}`;
+    if (balance < 0) return `-${abs}`;
+    return '0';
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -477,7 +277,7 @@ export default function TravelSettlementScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* 정산 정보 헤더 */}
+        {/* 헤더 카드 */}
         <View style={styles.header}>
           <Text style={styles.title}>{settlement.title}</Text>
           {settlement.description && (
@@ -489,34 +289,6 @@ export default function TravelSettlementScreen() {
               {settlement.endDate && ` ~ ${new Date(settlement.endDate).toLocaleDateString('ko-KR')}`}
             </Text>
           )}
-
-          {/* 정산 완료/다시 열기 + 수정/삭제 버튼 */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.completeToggleButton, isCompleted ? styles.reopenButton : styles.completeButton]}
-              onPress={handleToggleComplete}
-            >
-              <Text style={styles.completeToggleButtonText}>
-                {isCompleted ? '다시 열기' : '정산 완료'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {!isCompleted && (
-            <View style={[styles.actionButtons, { marginTop: 8 }]}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => setEditSettlementModalVisible(true)}
-              >
-                <Text style={styles.editButtonText}>수정</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={handleDeleteSettlement}
-              >
-                <Text style={styles.deleteButtonText}>삭제</Text>
-              </TouchableOpacity>
-            </View>
-          )}
           {isCompleted && (
             <View style={styles.completedBadge}>
               <Text style={styles.completedBadgeText}>정산 완료됨</Text>
@@ -524,153 +296,102 @@ export default function TravelSettlementScreen() {
           )}
         </View>
 
-        {/* 통계 카드 */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>총 지출</Text>
-            <Text style={styles.statValue}>
-              {formatAmount(stats.totalExpense)} {settlement.currency}
+        {/* 통계 카드 (1카드 2줄) */}
+        <View style={styles.statsCard}>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>총 지출</Text>
+            <Text style={styles.statsValue}>
+              {formatAmount(stats.totalExpense)} {settlement.currency} · {stats.expenseCount}건
             </Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>1인당 평균</Text>
-            <Text style={styles.statValue}>
-              {formatAmount(stats.perPersonAverage)} {settlement.currency}
+          <View style={styles.statsDivider} />
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>참가자</Text>
+            <Text style={styles.statsValue}>
+              {stats.participantCount}명 · 1인당 {formatAmount(Math.floor(stats.perPersonAverage))} {settlement.currency}
             </Text>
           </View>
         </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>참가자</Text>
-            <Text style={styles.statValue}>{stats.participantCount}명</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>지출 건수</Text>
-            <Text style={styles.statValue}>{stats.expenseCount}건</Text>
-          </View>
-        </View>
-
-        {/* 멤버 섹션 */}
-        {members.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>멤버 ({members.length})</Text>
-              <TouchableOpacity style={styles.inviteButton} onPress={handleInvite}>
-                <Text style={styles.inviteButtonText}>초대</Text>
-              </TouchableOpacity>
-            </View>
-            {members.map(member => (
-              <View key={member.id} style={styles.memberRow}>
-                <Text style={styles.memberName}>{member.userId.substring(0, 8)}...</Text>
-                <View style={[styles.roleBadge, member.role === 'OWNER' ? styles.ownerBadge : styles.memberBadge]}>
-                  <Text style={styles.roleBadgeText}>{member.role === 'OWNER' ? '소유자' : '멤버'}</Text>
+        {/* 잔액 요약 */}
+        {balances.length > 0 && (
+          <View style={styles.balanceSection}>
+            <Text style={styles.sectionTitle}>잔액 요약</Text>
+            {balances.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.balanceRow}
+                onPress={() => navigation.navigate('SettlementResult', { settlementId })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.balanceName}>{item.name}</Text>
+                <View style={styles.balanceRight}>
+                  <Text style={[styles.balanceAmount, { color: getBalanceColor(item.balance) }]}>
+                    {getBalanceText(item.balance)}원
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={Colors.text.hint}
+                  />
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
 
-        {/* 참가자별 잔액 요약 */}
-        {expenses.length > 0 && participants.length > 0 && (
-          <ParticipantBalanceSummary
-            participants={participants}
-            expenses={expenses}
-            currency={settlement.currency}
-          />
-        )}
-
-        {/* 참가자 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>참가자</Text>
-            {!isCompleted && (
-              <AnimatedButton
-                title="+ 추가"
-                onPress={() => setAddParticipantModalVisible(true)}
-                variant="primary"
-                size="small"
-                feedbackType="scale"
-                style={styles.addButton}
-                textStyle={styles.addButtonText}
-              />
-            )}
-          </View>
-          <ParticipantList
-            participants={participants}
-            onEdit={isCompleted ? undefined : handleEditParticipant}
-            onToggleActive={isCompleted ? undefined : handleToggleParticipant}
-            onDelete={isCompleted ? undefined : handleDeleteParticipant}
-          />
-        </View>
-
-        {/* 지출 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>지출 내역</Text>
-            {!isCompleted && (
-              <AnimatedButton
-                title="+ 추가"
-                onPress={() => setAddExpenseModalVisible(true)}
-                variant="primary"
-                size="small"
-                feedbackType="scale"
-                style={styles.addButton}
-                textStyle={styles.addButtonText}
-              />
-            )}
-          </View>
-          {expenses.length === 0 ? (
-            <View style={styles.emptyExpenses}>
-              <MaterialCommunityIcons
-                name="receipt-text-outline"
-                size={48}
-                color={Colors.text.disabled}
-              />
-              <Text style={styles.emptyText}>지출 내역이 없습니다</Text>
-              <Text style={styles.emptySubText}>지출을 추가해주세요</Text>
-            </View>
-          ) : (
-            expenses.map((expense) => (
-              <ExpenseItem
-                key={expense.id}
-                expense={expense}
-                currency={settlement.currency}
-                onSetSplits={isCompleted ? undefined : handleSetExpenseSplits}
-                onEdit={isCompleted ? undefined : handleEditExpense}
-                onDelete={isCompleted ? undefined : handleDeleteExpense}
-              />
-            ))
-          )}
+        {/* 네비게이션 버튼 행 */}
+        <View style={styles.navButtonRow}>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => navigation.navigate('ParticipantManagement', { settlementId, isCompleted })}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="account-group-outline" size={20} color={Colors.primary.main} />
+            <Text style={styles.navButtonText}>참가자 관리</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => navigation.navigate('ExpenseList', { settlementId, isCompleted, currency: settlement.currency })}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="receipt-text-outline" size={20} color={Colors.primary.main} />
+            <Text style={styles.navButtonText}>지출 내역</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 정산 결과 버튼 */}
-        <View style={styles.actionButtonsContainer}>
-          <AnimatedButton
-            title="✈️ 여행 정산 결과"
-            onPress={handleViewSettlementResult}
-            variant="primary"
-            size="medium"
-            feedbackType="pulse"
-            style={styles.travelResultButton}
-          />
-        </View>
+        <TouchableOpacity
+          style={styles.resultButton}
+          onPress={handleViewSettlementResult}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.resultButtonText}>여행 정산 결과</Text>
+        </TouchableOpacity>
+
+        {/* 수정 · 삭제 (완료 상태가 아닐 때만) */}
+        {!isCompleted && (
+          <View style={styles.editDeleteRow}>
+            <TouchableOpacity onPress={() => setEditSettlementModalVisible(true)}>
+              <Text style={styles.linkText}>수정</Text>
+            </TouchableOpacity>
+            <Text style={styles.linkDivider}>|</Text>
+            <TouchableOpacity onPress={handleDeleteSettlement}>
+              <Text style={[styles.linkText, { color: Colors.status.error }]}>삭제</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* 정산 완료/다시 열기 */}
+        <TouchableOpacity
+          style={styles.toggleCompleteLink}
+          onPress={handleToggleComplete}
+        >
+          <Text style={[styles.linkText, { color: isCompleted ? Colors.status.warning : Colors.status.success }]}>
+            {isCompleted ? '정산 다시 열기' : '정산 완료'}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
-
-      {/* 참가자 추가 모달 */}
-      <AddParticipantModal
-        visible={addParticipantModalVisible}
-        onClose={() => setAddParticipantModalVisible(false)}
-        onSubmit={handleAddParticipant}
-      />
-
-      {/* 지출 추가 모달 */}
-      <AddExpenseModal
-        visible={addExpenseModalVisible}
-        participants={participants}
-        onClose={() => setAddExpenseModalVisible(false)}
-        onSubmit={handleAddExpense}
-      />
 
       {/* 나머지 처리 모달 */}
       <RemainderHandlingModal
@@ -690,38 +411,6 @@ export default function TravelSettlementScreen() {
           settlement={settlement}
           onClose={() => setEditSettlementModalVisible(false)}
           onSubmit={handleUpdateSettlement}
-        />
-      )}
-
-      {/* 참가자 수정 모달 */}
-      {selectedParticipant && (
-        <EditParticipantModal
-          visible={editParticipantModalVisible}
-          participant={selectedParticipant}
-          onClose={() => setEditParticipantModalVisible(false)}
-          onSubmit={handleUpdateParticipant}
-        />
-      )}
-
-      {/* 지출 분담 설정 모달 */}
-      {selectedExpense && (
-        <ExpenseSplitModal
-          visible={expenseSplitModalVisible}
-          expense={selectedExpense}
-          participants={participants}
-          onClose={() => setExpenseSplitModalVisible(false)}
-          onSubmit={handleSubmitExpenseSplits}
-        />
-      )}
-
-      {/* 지출 수정 모달 */}
-      {selectedExpense && (
-        <EditExpenseModal
-          visible={editExpenseModalVisible}
-          expense={selectedExpense}
-          participants={participants}
-          onClose={() => setEditExpenseModalVisible(false)}
-          onSubmit={handleUpdateExpense}
         />
       )}
     </View>
@@ -779,28 +468,6 @@ const styles = StyleSheet.create({
     ...Typography.styles.caption,
     color: Colors.text.hint,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  completeToggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.spacing.lg,
-    borderRadius: Spacing.radius.md,
-    alignItems: 'center',
-  },
-  completeButton: {
-    backgroundColor: Colors.status.success,
-  },
-  reopenButton: {
-    backgroundColor: Colors.status.warning,
-  },
-  completeToggleButtonText: {
-    ...Typography.styles.button,
-    color: Colors.text.inverse,
-  },
   completedBadge: {
     marginTop: Spacing.spacing.sm,
     backgroundColor: Colors.action.secondary,
@@ -813,136 +480,113 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary.main,
   },
-  editButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.spacing.lg,
-    borderRadius: Spacing.radius.md,
-    backgroundColor: Colors.primary.main,
-    alignItems: 'center',
-  },
-  editButtonText: {
-    ...Typography.styles.button,
-    color: Colors.text.inverse,
-  },
-  deleteButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.spacing.lg,
-    borderRadius: Spacing.radius.md,
-    backgroundColor: Colors.status.error,
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    ...Typography.styles.button,
-    color: Colors.text.inverse,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  statCard: {
-    flex: 1,
+  statsCard: {
     backgroundColor: Colors.background.paper,
     borderRadius: Spacing.radius.lg,
     padding: Spacing.spacing.lg,
+    marginBottom: Spacing.spacing.lg,
     ...createShadowStyle('sm'),
   },
-  statLabel: {
-    ...Typography.styles.caption,
-    color: Colors.text.hint,
-    marginBottom: Spacing.spacing.sm,
-  },
-  statValue: {
-    ...Typography.styles.h3,
-    color: Colors.text.primary,
-  },
-  section: {
-    marginBottom: Spacing.spacing['2xl'],
-  },
-  sectionHeader: {
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  statsLabel: {
+    ...Typography.styles.body2,
+    color: Colors.text.hint,
+  },
+  statsValue: {
+    ...Typography.styles.body2,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  statsDivider: {
+    height: 1,
+    backgroundColor: Colors.border.light,
+    marginVertical: Spacing.spacing.md,
+  },
+  balanceSection: {
     marginBottom: Spacing.spacing.lg,
   },
   sectionTitle: {
     ...Typography.styles.h4,
     color: Colors.text.primary,
+    marginBottom: Spacing.spacing.md,
   },
-  addButton: {
-    paddingHorizontal: Spacing.spacing.lg,
-    paddingVertical: Spacing.spacing.sm,
-    borderRadius: Spacing.radius['2xl'],
-    backgroundColor: Colors.primary.main,
-  },
-  addButtonText: {
-    ...Typography.styles.label,
-    color: Colors.primary.contrast,
-  },
-  emptyExpenses: {
-    backgroundColor: Colors.background.paper,
-    borderRadius: Spacing.radius.lg,
-    padding: Spacing.spacing['4xl'],
-    alignItems: 'center',
-  },
-  emptyText: {
-    ...Typography.styles.body1,
-    color: Colors.text.hint,
-    marginBottom: Spacing.spacing.sm,
-  },
-  emptySubText: {
-    ...Typography.styles.body2,
-    color: Colors.text.disabled,
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    margin: Spacing.spacing.lg,
-    gap: Spacing.spacing.md,
-  },
-  travelResultButton: {
-    flex: 1,
-    backgroundColor: Colors.status.success,
-  },
-  inviteButton: {
-    paddingHorizontal: Spacing.spacing.lg,
-    paddingVertical: Spacing.spacing.sm,
-    borderRadius: Spacing.radius['2xl'],
-    backgroundColor: Colors.status.warning,
-  },
-  inviteButtonText: {
-    ...Typography.styles.label,
-    color: Colors.primary.contrast,
-  },
-  memberRow: {
+  balanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.spacing.md,
     backgroundColor: Colors.background.paper,
+    paddingVertical: Spacing.spacing.md,
+    paddingHorizontal: Spacing.spacing.lg,
     borderRadius: Spacing.radius.md,
     marginBottom: Spacing.spacing.xs + 2,
   },
-  memberName: {
-    ...Typography.styles.body2,
+  balanceName: {
+    ...Typography.styles.body1,
     color: Colors.text.primary,
   },
-  roleBadge: {
-    paddingHorizontal: Spacing.spacing.sm,
-    paddingVertical: Spacing.spacing.xs,
-    borderRadius: Spacing.radius.lg,
+  balanceRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  ownerBadge: {
-    backgroundColor: Colors.action.secondary,
+  balanceAmount: {
+    ...Typography.styles.body1,
+    fontWeight: Typography.fontWeight.semibold,
   },
-  memberBadge: {
-    backgroundColor: Colors.background.disabled,
+  navButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: Spacing.spacing.lg,
   },
-  roleBadgeText: {
-    fontSize: Typography.fontSize.xs + 1,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.text.secondary,
+  navButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.spacing.md,
+    borderRadius: Spacing.radius.md,
+    borderWidth: 1,
+    borderColor: Colors.primary.main,
+    backgroundColor: Colors.background.paper,
+  },
+  navButtonText: {
+    ...Typography.styles.button,
+    color: Colors.primary.main,
+  },
+  resultButton: {
+    backgroundColor: Colors.status.success,
+    paddingVertical: 14,
+    borderRadius: Spacing.radius.md,
+    alignItems: 'center',
+    marginBottom: Spacing.spacing.xl,
+  },
+  resultButtonText: {
+    ...Typography.styles.buttonLarge,
+    color: Colors.text.inverse,
+  },
+  editDeleteRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: Spacing.spacing.md,
+  },
+  linkText: {
+    ...Typography.styles.body2,
+    color: Colors.primary.main,
+  },
+  linkDivider: {
+    ...Typography.styles.body2,
+    color: Colors.text.disabled,
+  },
+  toggleCompleteLink: {
+    alignItems: 'center',
+    paddingVertical: Spacing.spacing.sm,
+    marginBottom: Spacing.spacing.lg,
   },
 });

@@ -5,6 +5,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import TravelSettlementScreen from '../screens/TravelSettlementScreen';
+import ParticipantManagementScreen from '../screens/ParticipantManagementScreen';
+import ExpenseListScreen from '../screens/ExpenseListScreen';
 import CreateSettlementScreen from '../screens/CreateSettlementScreen';
 import SettlementResultScreen from '../screens/SettlementResultScreen';
 import SettlementHistoryScreen from '../screens/SettlementHistoryScreen';
@@ -25,8 +27,10 @@ import { useAuth } from '../contexts/AuthContext';
 export type RootStackParamList = {
   Home: undefined;
   TravelSettlement: { settlementId: string };
+  ParticipantManagement: { settlementId: string; isCompleted: boolean };
+  ExpenseList: { settlementId: string; isCompleted: boolean; currency: string };
   CreateSettlement: undefined;
-  SettlementResult: { settlementId: string };
+  SettlementResult: { settlementId: string; remainderPayerId?: string; remainderAmount?: number };
   GameSettlement: { settlementId: string };
   GameSettlementResult: { settlementId: string; gameResult: any };
 };
@@ -77,6 +81,20 @@ const HomeStack = () => (
       component={TravelSettlementScreen}
       options={{
         title: '정산 상세',
+      }}
+    />
+    <Stack.Screen
+      name="ParticipantManagement"
+      component={ParticipantManagementScreen}
+      options={{
+        title: '참가자 관리',
+      }}
+    />
+    <Stack.Screen
+      name="ExpenseList"
+      component={ExpenseListScreen}
+      options={{
+        title: '지출 내역',
       }}
     />
     <Stack.Screen
