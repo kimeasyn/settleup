@@ -6,10 +6,12 @@ import com.settleup.domain.participant.Participant;
 import com.settleup.domain.settlement.Settlement;
 import com.settleup.domain.settlement.SettlementStatus;
 import com.settleup.domain.settlement.SettlementType;
+import com.settleup.domain.user.User;
 import com.settleup.dto.ExpenseDto.ExpenseRequest;
 import com.settleup.repository.ExpenseRepository;
 import com.settleup.repository.ParticipantRepository;
 import com.settleup.repository.SettlementRepository;
+import com.settleup.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,21 +52,32 @@ class ExpenseControllerTest {
     private ExpenseRepository expenseRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
+    private User testUser;
     private Settlement settlement;
     private Participant participant;
     private Expense expense;
 
     @BeforeEach
     void setUp() {
+        // 테스트 유저 생성
+        testUser = User.builder()
+                .name("테스트유저")
+                .email("test-expense@example.com")
+                .build();
+        testUser = userRepository.save(testUser);
+
         // 테스트 정산 생성
         settlement = Settlement.builder()
                 .title("제주도 여행")
                 .description("2박 3일 여행")
                 .type(SettlementType.TRAVEL)
                 .status(SettlementStatus.ACTIVE)
-                .creatorId(UUID.randomUUID())
+                .creatorId(testUser.getId())
                 .currency("KRW")
                 .build();
         settlement = settlementRepository.save(settlement);
@@ -225,7 +238,7 @@ class ExpenseControllerTest {
                 .title("빈 정산")
                 .type(SettlementType.GAME)
                 .status(SettlementStatus.ACTIVE)
-                .creatorId(UUID.randomUUID())
+                .creatorId(testUser.getId())
                 .currency("KRW")
                 .build();
         emptySettlement = settlementRepository.save(emptySettlement);

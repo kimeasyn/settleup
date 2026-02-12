@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.settleup.domain.settlement.Settlement;
 import com.settleup.domain.settlement.SettlementStatus;
 import com.settleup.domain.settlement.SettlementType;
+import com.settleup.domain.user.User;
 import com.settleup.dto.SettlementCreateRequest;
 import com.settleup.dto.SettlementUpdateRequest;
 import com.settleup.repository.SettlementRepository;
+import com.settleup.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,19 +42,30 @@ class SettlementControllerTest {
     private SettlementRepository settlementRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
+    private User testUser;
     private Settlement settlement;
 
     @BeforeEach
     void setUp() {
+        // 테스트 유저 생성 (settlements.creator_id FK 제약 조건 충족)
+        testUser = User.builder()
+                .name("테스트유저")
+                .email("test-settlement@example.com")
+                .build();
+        testUser = userRepository.save(testUser);
+
         // 테스트 정산 생성
         settlement = Settlement.builder()
                 .title("제주도 여행")
                 .description("2박 3일 여행")
                 .type(SettlementType.TRAVEL)
                 .status(SettlementStatus.ACTIVE)
-                .creatorId(UUID.randomUUID())
+                .creatorId(testUser.getId())
                 .currency("KRW")
                 .startDate(LocalDate.of(2025, 1, 15))
                 .endDate(LocalDate.of(2025, 1, 17))
@@ -264,7 +277,7 @@ class SettlementControllerTest {
                 .title("삭제할 정산")
                 .type(SettlementType.GAME)
                 .status(SettlementStatus.ACTIVE)
-                .creatorId(UUID.randomUUID())
+                .creatorId(testUser.getId())
                 .currency("KRW")
                 .build();
         toDelete = settlementRepository.save(toDelete);

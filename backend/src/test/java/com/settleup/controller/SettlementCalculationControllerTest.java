@@ -4,9 +4,11 @@ import com.settleup.domain.expense.Expense;
 import com.settleup.domain.participant.Participant;
 import com.settleup.domain.settlement.Settlement;
 import com.settleup.domain.settlement.SettlementType;
+import com.settleup.domain.user.User;
 import com.settleup.repository.ExpenseRepository;
 import com.settleup.repository.ParticipantRepository;
 import com.settleup.repository.SettlementRepository;
+import com.settleup.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,17 +48,28 @@ class SettlementCalculationControllerTest {
     @Autowired
     private ExpenseRepository expenseRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private User testUser;
     private Settlement settlement;
     private Participant p1, p2, p3;
 
     @BeforeEach
     void setUp() {
+        // 테스트 유저 생성
+        testUser = User.builder()
+                .name("테스트유저")
+                .email("test-calc@example.com")
+                .build();
+        testUser = userRepository.save(testUser);
+
         // 정산 생성
         settlement = Settlement.builder()
                 .title("제주도 여행")
                 .description("2박 3일 여행")
                 .type(SettlementType.TRAVEL)
-                .creatorId(UUID.randomUUID())
+                .creatorId(testUser.getId())
                 .currency("KRW")
                 .build();
         settlement = settlementRepository.save(settlement);
@@ -152,7 +165,7 @@ class SettlementCalculationControllerTest {
         Settlement emptySettlement = Settlement.builder()
                 .title("빈 정산")
                 .type(SettlementType.TRAVEL)
-                .creatorId(UUID.randomUUID())
+                .creatorId(testUser.getId())
                 .currency("KRW")
                 .build();
         emptySettlement = settlementRepository.save(emptySettlement);
@@ -170,7 +183,7 @@ class SettlementCalculationControllerTest {
         Settlement noExpenseSettlement = Settlement.builder()
                 .title("지출 없는 정산")
                 .type(SettlementType.TRAVEL)
-                .creatorId(UUID.randomUUID())
+                .creatorId(testUser.getId())
                 .currency("KRW")
                 .build();
         noExpenseSettlement = settlementRepository.save(noExpenseSettlement);

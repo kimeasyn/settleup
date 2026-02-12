@@ -1,10 +1,15 @@
 package com.settleup.service;
 
 import com.settleup.domain.participant.Participant;
+import com.settleup.domain.settlement.Settlement;
+import com.settleup.domain.settlement.SettlementStatus;
+import com.settleup.domain.settlement.SettlementType;
 import com.settleup.dto.ParticipantDto.ParticipantRequest;
 import com.settleup.dto.ParticipantDto.ParticipantResponse;
 import com.settleup.exception.BusinessException;
 import com.settleup.exception.ResourceNotFoundException;
+import com.settleup.repository.ExpenseRepository;
+import com.settleup.repository.ExpenseSplitRepository;
 import com.settleup.repository.ParticipantRepository;
 import com.settleup.repository.SettlementRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,17 +43,32 @@ class ParticipantServiceTest {
     @Mock
     private SettlementRepository settlementRepository;
 
+    @Mock
+    private ExpenseRepository expenseRepository;
+
+    @Mock
+    private ExpenseSplitRepository expenseSplitRepository;
+
     @InjectMocks
     private ParticipantService participantService;
 
     private UUID settlementId;
     private UUID participantId;
+    private Settlement settlement;
     private Participant participant;
 
     @BeforeEach
     void setUp() {
         settlementId = UUID.randomUUID();
         participantId = UUID.randomUUID();
+        settlement = Settlement.builder()
+                .id(settlementId)
+                .title("테스트 정산")
+                .type(SettlementType.TRAVEL)
+                .status(SettlementStatus.ACTIVE)
+                .creatorId(UUID.randomUUID())
+                .currency("KRW")
+                .build();
         participant = Participant.builder()
                 .id(participantId)
                 .settlementId(settlementId)
@@ -65,7 +86,7 @@ class ParticipantServiceTest {
                 .userId(null)
                 .build();
 
-        when(settlementRepository.existsById(settlementId)).thenReturn(true);
+        when(settlementRepository.findById(settlementId)).thenReturn(Optional.of(settlement));
         when(participantRepository.existsBySettlementIdAndName(settlementId, "김철수")).thenReturn(false);
         when(participantRepository.save(any(Participant.class))).thenReturn(participant);
 
@@ -79,7 +100,7 @@ class ParticipantServiceTest {
         assertThat(response.getSettlementId()).isEqualTo(settlementId);
         assertThat(response.getIsActive()).isTrue();
 
-        verify(settlementRepository, times(1)).existsById(settlementId);
+        verify(settlementRepository, times(1)).findById(settlementId);
         verify(participantRepository, times(1)).existsBySettlementIdAndName(settlementId, "김철수");
         verify(participantRepository, times(1)).save(any(Participant.class));
     }
@@ -92,14 +113,14 @@ class ParticipantServiceTest {
                 .name("김철수")
                 .build();
 
-        when(settlementRepository.existsById(settlementId)).thenReturn(false);
+        when(settlementRepository.findById(settlementId)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> participantService.addParticipant(settlementId, request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Settlement");
 
-        verify(settlementRepository, times(1)).existsById(settlementId);
+        verify(settlementRepository, times(1)).findById(settlementId);
         verify(participantRepository, never()).save(any());
     }
 
@@ -111,7 +132,7 @@ class ParticipantServiceTest {
                 .name("김철수")
                 .build();
 
-        when(settlementRepository.existsById(settlementId)).thenReturn(true);
+        when(settlementRepository.findById(settlementId)).thenReturn(Optional.of(settlement));
         when(participantRepository.existsBySettlementIdAndName(settlementId, "김철수")).thenReturn(true);
 
         // when & then
@@ -184,14 +205,20 @@ class ParticipantServiceTest {
     @DisplayName("참가자 삭제 - 성공")
     void deleteParticipant_Success() {
         // given
-        when(participantRepository.existsById(participantId)).thenReturn(true);
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+        when(settlementRepository.findById(settlementId)).thenReturn(Optional.of(settlement));
+        when(expenseRepository.findByPayerIdOrderByExpenseDateDesc(participantId)).thenReturn(Collections.emptyList());
+        when(expenseSplitRepository.findByParticipantId(participantId)).thenReturn(Collections.emptyList());
         doNothing().when(participantRepository).deleteById(participantId);
 
         // when
         participantService.deleteParticipant(participantId);
 
         // then
-        verify(participantRepository, times(1)).existsById(participantId);
+        verify(participantRepository, times(1)).findById(participantId);
+        verify(settlementRepository, times(1)).findById(settlementId);
+        verify(expenseRepository, times(1)).findByPayerIdOrderByExpenseDateDesc(participantId);
+        verify(expenseSplitRepository, times(1)).findByParticipantId(participantId);
         verify(participantRepository, times(1)).deleteById(participantId);
     }
 
@@ -199,14 +226,14 @@ class ParticipantServiceTest {
     @DisplayName("참가자 삭제 - 참가자를 찾을 수 없음")
     void deleteParticipant_NotFound() {
         // given
-        when(participantRepository.existsById(participantId)).thenReturn(false);
+        when(participantRepository.findById(participantId)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> participantService.deleteParticipant(participantId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Participant");
 
-        verify(participantRepository, times(1)).existsById(participantId);
+        verify(participantRepository, times(1)).findById(participantId);
         verify(participantRepository, never()).deleteById(any());
     }
 }
