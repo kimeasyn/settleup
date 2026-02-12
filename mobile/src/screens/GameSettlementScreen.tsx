@@ -18,12 +18,13 @@ import {
   GameSettlementResult,
 } from '../models/GameSettlement';
 import { Settlement, SettlementStatus, UpdateSettlementRequest } from '../models/Settlement';
-import { Participant } from '../models/Participant';
+import { Participant, AddParticipantRequest } from '../models/Participant';
 import AnimatedButton from '../components/AnimatedButton';
 import EditSettlementModal from '../components/EditSettlementModal';
+import AddParticipantModal from '../components/AddParticipantModal';
 
 import { localGameSettlementService } from '../services/api/gameSettlementService';
-import { getSettlement, getParticipants, deleteSettlement, updateSettlement, getSettlementMembers, generateInviteCode } from '../services/api/settlementService';
+import { getSettlement, getParticipants, deleteSettlement, updateSettlement, getSettlementMembers, generateInviteCode, addParticipant, toggleParticipantStatus, deleteParticipant } from '../services/api/settlementService';
 import { SettlementMember } from '../models/SettlementMember';
 import {
   calculateParticipantGameStatus,
@@ -56,6 +57,7 @@ export default function GameSettlementScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [gameResult, setGameResult] = useState<GameSettlementResult | null>(null);
   const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
+  const [addParticipantModalVisible, setAddParticipantModalVisible] = useState(false);
   const [members, setMembers] = useState<SettlementMember[]>([]);
 
   /**
@@ -206,14 +208,66 @@ export default function GameSettlementScreen() {
   };
 
   /**
+   * 참가자 추가
+   */
+  const handleAddParticipant = async (data: AddParticipantRequest) => {
+    try {
+      await addParticipant(settlementId, data);
+      await loadData();
+    } catch (error) {
+      console.error('참가자 추가 실패:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * 참가자 활성/비활성 토글
+   */
+  const handleToggleParticipant = async (participantId: string, currentIsActive: boolean) => {
+    try {
+      await toggleParticipantStatus(settlementId, participantId, !currentIsActive);
+      await loadData();
+    } catch (error) {
+      console.error('참가자 상태 변경 실패:', error);
+      Alert.alert('오류', '참가자 상태를 변경할 수 없습니다.');
+    }
+  };
+
+  /**
+   * 참가자 삭제
+   */
+  const handleDeleteParticipant = (participantId: string, name: string) => {
+    Alert.alert(
+      '참가자 삭제',
+      `"${name}"을(를) 삭제하시겠습니까?\n관련된 모든 기록이 삭제됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteParticipant(settlementId, participantId);
+              await loadData();
+            } catch (error) {
+              Alert.alert('오류', '참가자를 삭제할 수 없습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  /**
    * 라운드 엔트리 업데이트
    */
   const handleUpdateRoundEntries = async (
     roundId: string,
-    entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[]
+    entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[],
+    excludedParticipantIds?: string[]
   ) => {
     try {
-      await localGameSettlementService.updateLocalRoundEntries(settlementId, roundId, entries);
+      await localGameSettlementService.updateLocalRoundEntries(settlementId, roundId, entries, excludedParticipantIds);
       await loadData();
     } catch (error) {
       console.error('라운드 엔트리 업데이트 실패:', error);
@@ -229,7 +283,9 @@ export default function GameSettlementScreen() {
     const positiveEntries = round.entries.filter(e => e.amount > 0);
     if (positiveEntries.length === 0) return '미입력';
     const winner = positiveEntries.reduce((max, e) => e.amount > max.amount ? e : max, positiveEntries[0]);
-    return `Winner: ${winner.participantName} ${formatGameAmount(winner.amount)}원`;
+    const excludedCount = round.excludedParticipantIds?.length || 0;
+    const excludedSuffix = excludedCount > 0 ? ` (${excludedCount}명 불참)` : '';
+    return `Winner: ${winner.participantName} ${formatGameAmount(winner.amount)}원${excludedSuffix}`;
   };
 
   /**
@@ -420,6 +476,34 @@ export default function GameSettlementScreen() {
           )}
         </View>
 
+        {/* 참가자 관리 */}
+        {!isCompleted && (
+          <View style={styles.participantManagementSection}>
+            <View style={styles.participantManagementHeader}>
+              <Text style={styles.sectionTitle}>참가자</Text>
+              <TouchableOpacity
+                style={styles.addParticipantBtn}
+                onPress={() => setAddParticipantModalVisible(true)}
+              >
+                <Text style={styles.addParticipantBtnText}>+ 추가</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.participantChipContainer}>
+              {participants.map(p => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.participantChip, !p.isActive && styles.participantChipInactive]}
+                  onPress={() => handleToggleParticipant(p.id, p.isActive)}
+                  onLongPress={() => handleDeleteParticipant(p.id, p.name)}
+                >
+                  <View style={[styles.chipDot, p.isActive ? styles.chipDotActive : styles.chipDotInactive]} />
+                  <Text style={[styles.chipText, !p.isActive && styles.chipTextInactive]}>{p.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* 게임 요약 */}
         {renderGameSummary()}
 
@@ -473,6 +557,7 @@ export default function GameSettlementScreen() {
                     participants={participants}
                     onUpdateEntries={handleUpdateRoundEntries}
                     onDeleteRound={handleDeleteRound}
+                    disabled={isCompleted}
                   />
                 </View>
               )}
@@ -502,7 +587,7 @@ export default function GameSettlementScreen() {
             />
           )}
 
-          {gameRounds.length > 0 && gameResult && (
+          {gameRounds.length > 0 && gameResult && !isCompleted && (
             <AnimatedButton
               title="최종 정산"
               onPress={handleFinalSettlement}
@@ -524,6 +609,13 @@ export default function GameSettlementScreen() {
           onSubmit={handleUpdateSettlement}
         />
       )}
+
+      {/* 참가자 추가 모달 */}
+      <AddParticipantModal
+        visible={addParticipantModalVisible}
+        onClose={() => setAddParticipantModalVisible(false)}
+        onSubmit={handleAddParticipant}
+      />
     </View>
   );
 }
@@ -534,8 +626,9 @@ export default function GameSettlementScreen() {
 interface RoundEntryFormProps {
   round: GameRoundWithEntries;
   participants: Participant[];
-  onUpdateEntries: (roundId: string, entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[]) => void;
+  onUpdateEntries: (roundId: string, entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[], excludedParticipantIds?: string[]) => void;
   onDeleteRound: (roundId: string) => void;
+  disabled?: boolean;
 }
 
 const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
@@ -543,120 +636,268 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
   participants,
   onUpdateEntries,
   onDeleteRound,
+  disabled = false,
 }) => {
-  const [entryInputs, setEntryInputs] = useState<{ [participantId: string]: string }>({});
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set(round.excludedParticipantIds || []));
+  const [winnerIds, setWinnerIds] = useState<Set<string>>(new Set());
+  const [winnerAmounts, setWinnerAmounts] = useState<{ [participantId: string]: string }>({});
 
-  // 초기 값 설정
+  const activeParticipants = participants.filter(p => p.isActive);
+  const includedParticipants = activeParticipants.filter(p => !excludedIds.has(p.id));
+  const losers = includedParticipants.filter(p => !winnerIds.has(p.id));
+
+  // 기존 엔트리에서 승리자/금액 복원
   useEffect(() => {
-    const initialInputs: { [participantId: string]: string } = {};
-    participants
-      .filter(p => p.isActive)
-      .forEach(participant => {
-        const existingEntry = round.entries.find(e => e.participantId === participant.id);
-        initialInputs[participant.id] = existingEntry?.amount.toString() || '0';
-      });
-    setEntryInputs(initialInputs);
+    setExcludedIds(new Set(round.excludedParticipantIds || []));
+
+    const winners = new Set<string>();
+    const amounts: { [id: string]: string } = {};
+
+    round.entries.forEach(entry => {
+      if (entry.amount > 0) {
+        winners.add(entry.participantId);
+        amounts[entry.participantId] = entry.amount.toString();
+      }
+    });
+
+    setWinnerIds(winners);
+    setWinnerAmounts(amounts);
   }, [round, participants]);
 
-  /**
-   * 입력값 변경 처리
-   */
-  const handleInputChange = (participantId: string, value: string) => {
-    setEntryInputs(prev => ({
-      ...prev,
-      [participantId]: value,
-    }));
+  // 참가자 제외 토글
+  const handleToggleExclude = (participantId: string) => {
+    setExcludedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(participantId)) {
+        next.delete(participantId);
+      } else {
+        next.add(participantId);
+        // 제외 시 승리자에서도 제거
+        setWinnerIds(prevW => {
+          const nextW = new Set(prevW);
+          nextW.delete(participantId);
+          return nextW;
+        });
+        setWinnerAmounts(prevA => {
+          const nextA = { ...prevA };
+          delete nextA[participantId];
+          return nextA;
+        });
+      }
+      return next;
+    });
   };
 
-  /**
-   * 저장 처리
-   */
+  // 승리자 토글
+  const handleToggleWinner = (participantId: string) => {
+    setWinnerIds(prev => {
+      const next = new Set(prev);
+      if (next.has(participantId)) {
+        next.delete(participantId);
+        setWinnerAmounts(prevA => {
+          const nextA = { ...prevA };
+          delete nextA[participantId];
+          return nextA;
+        });
+      } else {
+        next.add(participantId);
+      }
+      return next;
+    });
+  };
+
+  // 승리 금액 입력
+  const handleWinnerAmountChange = (participantId: string, value: string) => {
+    const cleaned = value.replace(/^0+(\d)/, '$1');
+    setWinnerAmounts(prev => ({ ...prev, [participantId]: cleaned }));
+  };
+
+  // 총 승리 금액
+  const totalWinnings = Array.from(winnerIds).reduce((sum, id) => {
+    return sum + (Math.round(parseFloat(winnerAmounts[id] || '0')) || 0);
+  }, 0);
+
+  // 패자 1인당 금액
+  const loserCount = losers.length;
+  const perLoserLoss = loserCount > 0 ? Math.floor(totalWinnings / loserCount) : 0;
+  const loserRemainder = loserCount > 0 ? totalWinnings - perLoserLoss * loserCount : 0;
+
+  // 저장 처리
   const handleSave = () => {
-    const entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[] = participants
-      .filter(p => p.isActive)
-      .map(participant => {
-        const amountStr = entryInputs[participant.id] || '0';
-        const amount = parseFloat(amountStr) || 0;
-
-        return {
-          roundId: round.round.id,
-          participantId: participant.id,
-          participantName: participant.name,
-          amount,
-        };
-      });
-
-    // 유효성 검사
-    const validation = validateRound(
-      entries as GameRoundEntry[],
-      participants.filter(p => p.isActive)
-    );
-
-    if (!validation.isValid) {
-      Alert.alert('입력 오류', validation.errorMessage || '올바르지 않은 입력입니다.');
+    if (winnerIds.size === 0) {
+      Alert.alert('입력 오류', '승리자를 선택해주세요.');
       return;
     }
 
-    onUpdateEntries(round.round.id, entries);
-  };
+    const hasInvalidWinner = Array.from(winnerIds).some(id => {
+      const amount = Math.round(parseFloat(winnerAmounts[id] || '0')) || 0;
+      return amount <= 0;
+    });
+    if (hasInvalidWinner) {
+      Alert.alert('입력 오류', '승리자의 금액을 입력해주세요.');
+      return;
+    }
 
-  // 총합 계산
-  const totalAmount = Object.values(entryInputs).reduce((sum, value) => {
-    return sum + (parseFloat(value) || 0);
-  }, 0);
+    if (loserCount === 0) {
+      Alert.alert('입력 오류', '패배자가 최소 1명 이상이어야 합니다.');
+      return;
+    }
+
+    // 엔트리 생성
+    const entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[] = [];
+
+    // 승리자 엔트리
+    includedParticipants.forEach(p => {
+      if (winnerIds.has(p.id)) {
+        entries.push({
+          roundId: round.round.id,
+          participantId: p.id,
+          participantName: p.name,
+          amount: Math.round(parseFloat(winnerAmounts[p.id] || '0')) || 0,
+        });
+      }
+    });
+
+    // 패배자 엔트리 (균등 분배, 나머지는 앞에서부터 1원씩)
+    losers.forEach((p, index) => {
+      const loss = index < loserRemainder ? perLoserLoss + 1 : perLoserLoss;
+      entries.push({
+        roundId: round.round.id,
+        participantId: p.id,
+        participantName: p.name,
+        amount: -loss,
+      });
+    });
+
+    const excludedArray = Array.from(excludedIds);
+    onUpdateEntries(round.round.id, entries, excludedArray.length > 0 ? excludedArray : undefined);
+  };
 
   return (
     <View style={styles.roundForm}>
       <View style={styles.roundFormHeader}>
         <Text style={styles.roundFormTitle}>{round.round.title}</Text>
-        <TouchableOpacity
-          style={styles.deleteRoundButton}
-          onPress={() => onDeleteRound(round.round.id)}
-        >
-          <Text style={styles.deleteRoundButtonText}>삭제</Text>
-        </TouchableOpacity>
+        {!disabled && (
+          <TouchableOpacity
+            style={styles.deleteRoundButton}
+            onPress={() => onDeleteRound(round.round.id)}
+          >
+            <Text style={styles.deleteRoundButtonText}>삭제</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* 참가자별 입력 */}
-      {participants
-        .filter(p => p.isActive)
-        .map(participant => (
-          <View key={participant.id} style={styles.entryRow}>
-            <Text style={styles.participantLabel}>{participant.name}</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={entryInputs[participant.id] || '0'}
-              onChangeText={(value) => handleInputChange(participant.id, value)}
-              keyboardType="numeric"
-              placeholder="0"
-            />
-            <Text style={styles.amountUnit}>원</Text>
+      {/* 참가자 선택 체크박스 */}
+      {activeParticipants.length > 0 && (
+        <View style={styles.roundParticipantSelection}>
+          <Text style={styles.roundParticipantSelectionLabel}>참가자 선택</Text>
+          <View style={styles.checkboxContainer}>
+            {activeParticipants.map(participant => {
+              const isIncluded = !excludedIds.has(participant.id);
+              return (
+                <TouchableOpacity
+                  key={participant.id}
+                  style={styles.checkboxRow}
+                  onPress={() => handleToggleExclude(participant.id)}
+                  disabled={disabled}
+                >
+                  <MaterialCommunityIcons
+                    name={isIncluded ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                    size={22}
+                    color={isIncluded ? Colors.primary.main : Colors.text.disabled}
+                  />
+                  <Text style={[
+                    styles.checkboxLabel,
+                    !isIncluded && styles.checkboxLabelExcluded,
+                  ]}>
+                    {participant.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        ))}
+        </View>
+      )}
 
-      {/* 총합 표시 */}
-      <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>총합</Text>
-        <Text
-          style={[
-            styles.totalAmount,
-            totalAmount === 0 ? styles.validTotal : styles.invalidTotal,
-          ]}
-        >
-          {formatGameAmount(totalAmount)}원
-        </Text>
-      </View>
+      {/* 승리자 선택 & 금액 입력 */}
+      <Text style={styles.roundParticipantSelectionLabel}>승리자 & 금액</Text>
+      {includedParticipants.map(participant => {
+        const isWinner = winnerIds.has(participant.id);
+        return (
+          <View key={participant.id} style={styles.winnerRow}>
+            <TouchableOpacity
+              style={[styles.winnerToggle, isWinner && styles.winnerToggleActive]}
+              onPress={() => handleToggleWinner(participant.id)}
+              disabled={disabled}
+            >
+              <MaterialCommunityIcons
+                name={isWinner ? 'trophy' : 'account-outline'}
+                size={18}
+                color={isWinner ? '#FFFFFF' : Colors.text.hint}
+              />
+              <Text style={[styles.winnerToggleText, isWinner && styles.winnerToggleTextActive]}>
+                {participant.name}
+              </Text>
+            </TouchableOpacity>
+            {isWinner && (
+              <View style={styles.winnerAmountContainer}>
+                <TextInput
+                  style={styles.amountInput}
+                  value={winnerAmounts[participant.id] ?? ''}
+                  onChangeText={(value) => handleWinnerAmountChange(participant.id, value)}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  editable={!disabled}
+                />
+                <Text style={styles.amountUnit}>원</Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
+
+      {/* 정산 미리보기 */}
+      {totalWinnings > 0 && loserCount > 0 && (
+        <View style={styles.previewSection}>
+          <Text style={styles.previewTitle}>정산 미리보기</Text>
+          {includedParticipants.map((p, idx) => {
+            let amount: number;
+            if (winnerIds.has(p.id)) {
+              amount = Math.round(parseFloat(winnerAmounts[p.id] || '0')) || 0;
+            } else {
+              const loserIdx = losers.findIndex(l => l.id === p.id);
+              amount = -(loserIdx < loserRemainder ? perLoserLoss + 1 : perLoserLoss);
+            }
+            return (
+              <View key={p.id} style={styles.previewRow}>
+                <Text style={styles.previewName}>{p.name}</Text>
+                <Text style={[
+                  styles.previewAmount,
+                  amount > 0 ? styles.positiveAmount : amount < 0 ? styles.negativeAmount : styles.zeroAmount,
+                ]}>
+                  {formatGameAmount(amount)}원
+                </Text>
+              </View>
+            );
+          })}
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>총합</Text>
+            <Text style={[styles.totalAmount, styles.validTotal]}>0원</Text>
+          </View>
+        </View>
+      )}
 
       {/* 저장 버튼 */}
-      <AnimatedButton
-        title="저장"
-        onPress={handleSave}
-        variant={totalAmount === 0 ? "success" : "secondary"}
-        size="medium"
-        feedbackType="pulse"
-        style={styles.saveButton}
-        disabled={totalAmount !== 0}
-      />
+      {!disabled && (
+        <AnimatedButton
+          title="저장"
+          onPress={handleSave}
+          variant={totalWinnings > 0 && loserCount > 0 ? "success" : "secondary"}
+          size="medium"
+          feedbackType="pulse"
+          style={styles.saveButton}
+        />
+      )}
     </View>
   );
 };
@@ -959,5 +1200,155 @@ const styles = StyleSheet.create({
   },
   finalButton: {
     backgroundColor: Colors.primary.main,
+  },
+  // 참가자 관리 섹션
+  participantManagementSection: {
+    backgroundColor: Colors.background.paper,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.xl,
+    marginBottom: Spacing.spacing.lg,
+    ...createShadowStyle('sm'),
+  },
+  participantManagementHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.spacing.md,
+  },
+  addParticipantBtn: {
+    paddingHorizontal: Spacing.spacing.md,
+    paddingVertical: Spacing.spacing.xs,
+    backgroundColor: Colors.primary.main,
+    borderRadius: Spacing.radius.md,
+  },
+  addParticipantBtnText: {
+    ...Typography.styles.caption,
+    color: Colors.text.inverse,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  participantChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.spacing.sm,
+  },
+  participantChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.spacing.md,
+    paddingVertical: Spacing.spacing.sm,
+    backgroundColor: Colors.background.elevated,
+    borderRadius: Spacing.radius.full,
+    gap: Spacing.spacing.xs,
+  },
+  participantChipInactive: {
+    backgroundColor: Colors.background.default,
+    opacity: 0.7,
+  },
+  chipDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  chipDotActive: {
+    backgroundColor: Colors.status.success,
+  },
+  chipDotInactive: {
+    backgroundColor: Colors.text.disabled,
+  },
+  chipText: {
+    ...Typography.styles.body2,
+    color: Colors.text.primary,
+  },
+  chipTextInactive: {
+    color: Colors.text.disabled,
+    textDecorationLine: 'line-through',
+  },
+  // 라운드 참가자 체크박스
+  roundParticipantSelection: {
+    marginBottom: Spacing.spacing.lg,
+    paddingBottom: Spacing.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  roundParticipantSelectionLabel: {
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginBottom: Spacing.spacing.sm,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.spacing.md,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.spacing.xs,
+  },
+  checkboxLabel: {
+    ...Typography.styles.body2,
+    color: Colors.text.primary,
+  },
+  // 승리자 선택 행
+  winnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.spacing.sm,
+    gap: Spacing.spacing.sm,
+  },
+  winnerToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.spacing.md,
+    paddingVertical: Spacing.spacing.sm,
+    backgroundColor: Colors.background.elevated,
+    borderRadius: Spacing.radius.full,
+    gap: Spacing.spacing.xs,
+    flex: 1,
+  },
+  winnerToggleActive: {
+    backgroundColor: Colors.status.success,
+  },
+  winnerToggleText: {
+    ...Typography.styles.body2,
+    color: Colors.text.primary,
+  },
+  winnerToggleTextActive: {
+    color: '#FFFFFF',
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  winnerAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // 정산 미리보기
+  previewSection: {
+    marginTop: Spacing.spacing.lg,
+    paddingTop: Spacing.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.light,
+  },
+  previewTitle: {
+    ...Typography.styles.caption,
+    color: Colors.text.hint,
+    marginBottom: Spacing.spacing.sm,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.spacing.xs,
+  },
+  previewName: {
+    ...Typography.styles.body2,
+    color: Colors.text.primary,
+  },
+  previewAmount: {
+    ...Typography.styles.body2,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  checkboxLabelExcluded: {
+    color: Colors.text.disabled,
+    textDecorationLine: 'line-through',
   },
 });
