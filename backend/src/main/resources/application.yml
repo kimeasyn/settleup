@@ -1,0 +1,82 @@
+spring:
+  application:
+    name: settleup-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/settleup
+    username: settleup
+    password: settleup123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  flyway:
+    baseline-on-migrate: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # 개발 중에는 update 사용, 프로덕션에서는 validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+    open-in-view: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+# OAuth 설정
+# Google: ID Token 검증 시 audience로 사용
+# Kakao: OIDC ID Token 검증 시 audience(aud) 클레임 검증에 사용 (REST API 키 = OIDC client_id)
+oauth:
+  google:
+    client-id-ios: ${GOOGLE_CLIENT_ID_IOS:your-google-client-id-ios}
+    client-id-android: ${GOOGLE_CLIENT_ID_ANDROID:your-google-client-id-android}
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY:your-kakao-rest-api-key}
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:your-jwt-secret-must-be-at-least-32-characters-long}
+  access-token-expiry: 1800000   # 30분 (milliseconds)
+  refresh-token-expiry: 1209600000  # 14일 (milliseconds)
+
+logging:
+  level:
+    root: INFO
+    com.settleup: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Swagger/OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    display-request-duration: true
+    try-it-out-enabled: true
+  show-actuator: false

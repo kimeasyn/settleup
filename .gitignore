@@ -58,8 +58,44 @@ ENV/
 *.orig.*
 web-build/
 
+# Docker & Infrastructure
+docker-compose.override.yml
+.docker/
+postgres-data/
+redis-data/
+*.pid
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# ML Models
+ml-service/models/*.bin
+ml-service/models/*.pkl
+ml-service/models/*.tflite
+ml-service/models/*.onnx
+
+# Spring Boot
+.spring-boot-devtools.properties
+application-local.yml
+application-secret.yml
+application-*.yml
+!application.yml
+!application-local.yml.example
+
 # Misc
 *.log
 .env
-.env.local
+.env.*
+!.env.example
 *.pem
+*.tmp
+*.swp
+coverage/
+.coverage
+htmlcov/
+
+# IntelliJ HTTP Client
+http-client.private.env.json
+.idea/httpRequests/

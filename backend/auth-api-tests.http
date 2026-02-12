@@ -1,0 +1,278 @@
+# SettleUp 소셜 로그인 API 테스트
+# IntelliJ IDEA HTTP Client용 테스트 파일
+
+### 변수 설정
+@baseUrl = http://localhost:8080/api/v1
+@googleIdToken = YOUR_GOOGLE_ID_TOKEN_HERE
+@kakaoIdToken = YOUR_KAKAO_ID_TOKEN_HERE
+@testUserId = 123e4567-e89b-12d3-a456-426614174000
+@accessToken = YOUR_ACCESS_TOKEN_HERE
+@refreshToken = YOUR_REFRESH_TOKEN_HERE
+
+### =================================================================
+### 1. 개발용 편의 기능 테스트
+### =================================================================
+
+### 1-1. 테스트용 사용자 생성
+POST {{baseUrl}}/dev/user?name=테스트유저&email=test@example.com
+
+### 1-2. 테스트용 JWT 토큰 발급
+POST {{baseUrl}}/dev/token?userId={{testUserId}}
+
+> {%
+    client.test("토큰 발급 성공", function() {
+        client.assert(response.status === 200, "Status should be 200");
+        client.assert(response.body.accessToken, "Access token should exist");
+        client.assert(response.body.refreshToken, "Refresh token should exist");
+    });
+
+    // 토큰을 변수에 저장
+    client.global.set("accessToken", response.body.accessToken);
+    client.global.set("refreshToken", response.body.refreshToken);
+%}
+
+### =================================================================
+### 2. 소셜 로그인 테스트
+### =================================================================
+
+### 2-1. Google 소셜 로그인
+POST {{baseUrl}}/auth/login/google
+Content-Type: application/json
+
+{
+  "token": "{{googleIdToken}}"
+}
+
+> {%
+    client.test("Google 로그인 성공", function() {
+        client.assert(response.status === 200, "Status should be 200");
+        client.assert(response.body.accessToken, "Access token should exist");
+        client.assert(response.body.userId, "User ID should exist");
+    });
+%}
+
+### 2-2. Kakao 소셜 로그인 (OIDC ID Token)
+POST {{baseUrl}}/auth/login/kakao
+Content-Type: application/json
+
+{
+  "token": "{{kakaoIdToken}}"
+}
+
+> {%
+    client.test("Kakao 로그인 성공", function() {
+        client.assert(response.status === 200, "Status should be 200");
+        client.assert(response.body.accessToken, "Access token should exist");
+        client.assert(response.body.userId, "User ID should exist");
+    });
+%}
+
+### =================================================================
+### 3. JWT 토큰 관리 테스트
+### =================================================================
+
+### 3-1. JWT 토큰 갱신
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+> {%
+    client.test("토큰 갱신 성공", function() {
+        client.assert(response.status === 200, "Status should be 200");
+        client.assert(response.body.accessToken, "New access token should exist");
+        client.assert(response.body.refreshToken, "New refresh token should exist");
+    });
+
+    // 새로운 토큰으로 업데이트
+    client.global.set("accessToken", response.body.accessToken);
+    client.global.set("refreshToken", response.body.refreshToken);
+%}
+
+### 3-2. 로그아웃 (JWT 토큰 사용)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+> {%
+    client.test("로그아웃 성공", function() {
+        client.assert(response.status === 200, "Status should be 200");
+    });
+%}
+
+### 3-3. 로그아웃 (Dev 헤더 사용)
+POST {{baseUrl}}/auth/logout
+X-Dev-User-Id: {{testUserId}}
+
+### =================================================================
+### 4. 인증이 필요한 API 테스트 (기존 API들)
+### =================================================================
+
+### 4-1. Settlement 조회 (JWT 토큰 사용)
+GET {{baseUrl}}/settlements
+Authorization: Bearer {{accessToken}}
+
+### 4-2. Settlement 조회 (Dev 헤더 사용)
+GET {{baseUrl}}/settlements
+X-Dev-User-Id: {{testUserId}}
+
+### =================================================================
+### 5. 에러 케이스 테스트
+### =================================================================
+
+### 5-1. 잘못된 Google 토큰
+POST {{baseUrl}}/auth/login/google
+Content-Type: application/json
+
+{
+  "token": "invalid_google_token"
+}
+
+> {%
+    client.test("잘못된 Google 토큰 에러", function() {
+        client.assert(response.status >= 400, "Status should be 4xx");
+    });
+%}
+
+### 5-2. 잘못된 Kakao 토큰
+POST {{baseUrl}}/auth/login/kakao
+Content-Type: application/json
+
+{
+  "token": "invalid_kakao_token"
+}
+
+> {%
+    client.test("잘못된 Kakao 토큰 에러", function() {
+        client.assert(response.status >= 400, "Status should be 4xx");
+    });
+%}
+
+### 5-3. 만료된/잘못된 Refresh Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "invalid_refresh_token"
+}
+
+> {%
+    client.test("잘못된 Refresh Token 에러", function() {
+        client.assert(response.status >= 400, "Status should be 4xx");
+    });
+%}
+
+### 5-4. 인증 없이 로그아웃 시도
+POST {{baseUrl}}/auth/logout
+
+> {%
+    client.test("인증 없는 로그아웃 에러", function() {
+        client.assert(response.status === 401 || response.status === 403, "Status should be 401 or 403");
+    });
+%}
+
+### 5-5. 존재하지 않는 사용자 ID (Dev)
+POST {{baseUrl}}/dev/token?userId=00000000-0000-0000-0000-000000000000
+
+> {%
+    client.test("존재하지 않는 사용자 에러", function() {
+        client.assert(response.status >= 400, "Status should be 4xx");
+    });
+%}
+
+### 5-6. 잘못된 UUID 형식 (Dev 헤더)
+GET {{baseUrl}}/settlements
+X-Dev-User-Id: invalid-uuid-format
+
+> {%
+    client.test("잘못된 UUID 형식", function() {
+        client.assert(response.status >= 400, "Status should be 4xx or proceed without auth");
+    });
+%}
+
+### =================================================================
+### 6. 성능 및 동시성 테스트
+### =================================================================
+
+### 6-1. 동시 토큰 갱신 (같은 Refresh Token)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 6-2. 즉시 재시도 (이전 토큰은 무효화됨)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+> {%
+    client.test("Token Rotation 확인", function() {
+        client.assert(response.status >= 400, "Previous refresh token should be invalid");
+    });
+%}
+
+### =================================================================
+### 7. 계정 연동 테스트 (같은 이메일 다른 Provider)
+### =================================================================
+
+### 7-1. Google으로 첫 로그인
+POST {{baseUrl}}/auth/login/google
+Content-Type: application/json
+
+{
+  "token": "{{googleIdToken}}"
+}
+
+> {%
+    client.global.set("firstLoginUserId", response.body.userId);
+%}
+
+### 7-2. 같은 이메일로 Kakao 로그인 (계정 연동 확인)
+POST {{baseUrl}}/auth/login/kakao
+Content-Type: application/json
+
+{
+  "token": "{{kakaoIdToken}}"
+}
+
+> {%
+    client.test("계정 연동 확인", function() {
+        client.assert(response.status === 200, "Status should be 200");
+        // 같은 User ID가 반환되는지 확인
+        const firstUserId = client.global.get("firstLoginUserId");
+        if (firstUserId) {
+            client.assert(response.body.userId === firstUserId, "Should link to same user account");
+        }
+    });
+%}
+
+### =================================================================
+### 8. Health Check 및 기본 엔드포인트
+### =================================================================
+
+### 8-1. Health Check
+GET {{baseUrl}}/actuator/health
+
+### 8-2. Swagger API Docs
+GET {{baseUrl}}/api-docs
+
+### =================================================================
+### 끝
+### =================================================================
+
+# 사용 방법:
+# 1. IntelliJ IDEA에서 이 파일 열기
+# 2. 상단 변수들(@googleIdToken, @kakaoIdToken 등)에 실제 값 입력
+# 3. 각 요청 옆의 초록색 화살표 클릭하여 실행
+# 4. 결과를 Run 탭에서 확인
+
+# 팁:
+# - 환경별로 다른 baseUrl 사용하려면 http-client.env.json 파일 생성
+# - 민감한 토큰들은 http-client.private.env.json에 저장 (gitignore 적용됨)
+# - 테스트 스크립트로 응답 검증 및 변수 저장 가능
