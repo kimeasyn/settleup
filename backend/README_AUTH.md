@@ -4,7 +4,7 @@
 
 ### ✅ 소셜 로그인
 - **Google 로그인**: Google ID Token 검증
-- **Kakao 로그인**: Kakao Access Token 검증
+- **Kakao 로그인**: Kakao OIDC ID Token 검증
 - **자동 회원가입**: 소셜 로그인 시 사용자 자동 생성
 - **계정 연동**: 같은 이메일로 다른 Provider 연동 지원
 
@@ -113,7 +113,7 @@ jwt:
 - **Spring Boot 3.2** + **Spring Security 6**
 - **JWT**: io.jsonwebtoken (jjwt) 0.12.3
 - **Google API Client**: 2.2.0
-- **WebFlux**: Kakao API 호출용
+- **Nimbus JOSE + JWT**: 9.37.3 (Kakao OIDC ID Token 검증)
 - **Flyway**: DB 마이그레이션
 
 ## 💡 다음 단계 (선택사항)

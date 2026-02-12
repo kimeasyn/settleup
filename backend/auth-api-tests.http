@@ -4,7 +4,7 @@
 ### 변수 설정
 @baseUrl = http://localhost:8080/api/v1
 @googleIdToken = YOUR_GOOGLE_ID_TOKEN_HERE
-@kakaoAccessToken = YOUR_KAKAO_ACCESS_TOKEN_HERE
+@kakaoIdToken = YOUR_KAKAO_ID_TOKEN_HERE
 @testUserId = 123e4567-e89b-12d3-a456-426614174000
 @accessToken = YOUR_ACCESS_TOKEN_HERE
 @refreshToken = YOUR_REFRESH_TOKEN_HERE
@@ -51,12 +51,12 @@ Content-Type: application/json
     });
 %}
 
-### 2-2. Kakao 소셜 로그인
+### 2-2. Kakao 소셜 로그인 (OIDC ID Token)
 POST {{baseUrl}}/auth/login/kakao
 Content-Type: application/json
 
 {
-  "token": "{{kakaoAccessToken}}"
+  "token": "{{kakaoIdToken}}"
 }
 
 > {%
@@ -238,7 +238,7 @@ POST {{baseUrl}}/auth/login/kakao
 Content-Type: application/json
 
 {
-  "token": "{{kakaoAccessToken}}"
+  "token": "{{kakaoIdToken}}"
 }
 
 > {%
@@ -268,7 +268,7 @@ GET {{baseUrl}}/api-docs
 
 # 사용 방법:
 # 1. IntelliJ IDEA에서 이 파일 열기
-# 2. 상단 변수들(@googleIdToken, @kakaoAccessToken 등)에 실제 값 입력
+# 2. 상단 변수들(@googleIdToken, @kakaoIdToken 등)에 실제 값 입력
 # 3. 각 요청 옆의 초록색 화살표 클릭하여 실행
 # 4. 결과를 Run 탭에서 확인
 

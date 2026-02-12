@@ -139,16 +139,16 @@ curl -X POST "http://localhost:8080/api/v1/auth/login/google" \
 }
 ```
 
-### 2. Kakao 소셜 로그인
+### 2. Kakao 소셜 로그인 (OIDC)
 
-#### 2-1. Kakao Access Token 획득
+#### 2-1. Kakao OIDC ID Token 획득
 
-1. **브라우저에서 Authorization Code 획득:**
+1. **브라우저에서 Authorization Code 획득 (openid 스코프 필수):**
 ```
-https://kauth.kakao.com/oauth/authorize?client_id=YOUR_KAKAO_REST_API_KEY&redirect_uri=http://localhost:8080&response_type=code
+https://kauth.kakao.com/oauth/authorize?client_id=YOUR_KAKAO_REST_API_KEY&redirect_uri=http://localhost:8080&response_type=code&scope=openid
 ```
 
-2. **Authorization Code로 Access Token 획득:**
+2. **Authorization Code로 ID Token 획득:**
 ```bash
 curl -X POST "https://kauth.kakao.com/oauth/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -157,6 +157,7 @@ curl -X POST "https://kauth.kakao.com/oauth/token" \
   -d "redirect_uri=http://localhost:8080" \
   -d "code=AUTHORIZATION_CODE"
 ```
+응답의 `id_token` 필드에서 JWT를 복사합니다. (`access_token`이 아닌 `id_token`을 사용)
 
 #### 2-2. API 호출
 
@@ -164,7 +165,7 @@ curl -X POST "https://kauth.kakao.com/oauth/token" \
 curl -X POST "http://localhost:8080/api/v1/auth/login/kakao" \
   -H "Content-Type: application/json" \
   -d '{
-    "token": "KAKAO_ACCESS_TOKEN_HERE"
+    "token": "KAKAO_ID_TOKEN_HERE"
   }'
 ```
 
