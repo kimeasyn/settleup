@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -12,7 +12,7 @@ import { ButtonFeedbackAnimation } from '../constants/Animations';
 
 interface AnimatedButtonProps {
   title: string;
-  onPress?: (event: GestureResponderEvent) => void;
+  onPress?: (event: GestureResponderEvent) => void | Promise<void>;
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -32,19 +32,21 @@ export default function AnimatedButton({
   feedbackType = 'scale',
 }: AnimatedButtonProps) {
   const animationRef = useRef(new ButtonFeedbackAnimation());
+  const processingRef = useRef(false);
+  const [processing, setProcessing] = useState(false);
 
   const handlePressIn = () => {
-    if (disabled) return;
+    if (disabled || processing) return;
     animationRef.current.pressIn().start();
   };
 
   const handlePressOut = () => {
-    if (disabled) return;
+    if (disabled || processing) return;
     animationRef.current.pressOut().start();
   };
 
-  const handlePress = (event: GestureResponderEvent) => {
-    if (disabled || !onPress) return;
+  const handlePress = useCallback((event: GestureResponderEvent) => {
+    if (disabled || !onPress || processingRef.current) return;
 
     // 피드백 애니메이션 실행
     if (feedbackType === 'pulse') {
@@ -53,13 +55,24 @@ export default function AnimatedButton({
       animationRef.current.shake().start();
     }
 
-    onPress(event);
-  };
+    const result = onPress(event);
+
+    if (result && typeof result.then === 'function') {
+      processingRef.current = true;
+      setProcessing(true);
+      result.finally(() => {
+        processingRef.current = false;
+        setProcessing(false);
+      });
+    }
+  }, [disabled, onPress, feedbackType]);
+
+  const isDisabled = disabled || processing;
 
   const getButtonStyle = () => {
     const baseStyle = [styles.button, styles[`${size}Button`], styles[`${variant}Button`]];
 
-    if (disabled) {
+    if (isDisabled) {
       baseStyle.push(styles.disabledButton);
     }
 
@@ -73,7 +86,7 @@ export default function AnimatedButton({
   const getTextStyle = () => {
     const baseStyle = [styles.buttonText, styles[`${size}Text`], styles[`${variant}Text`]];
 
-    if (disabled) {
+    if (isDisabled) {
       baseStyle.push(styles.disabledText);
     }
 
@@ -90,7 +103,7 @@ export default function AnimatedButton({
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      disabled={disabled}
+      disabled={disabled || processing}
       activeOpacity={1}
     >
       <Animated.View style={animationRef.current.getAnimatedStyle()}>
