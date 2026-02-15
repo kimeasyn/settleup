@@ -84,6 +84,11 @@ export default function AddExpenseModal({
       return;
     }
 
+    if (amountNum > 100000000) {
+      Alert.alert('입력 오류', '금액은 1억 원 이하여야 합니다.');
+      return;
+    }
+
     if (!description.trim()) {
       Alert.alert('입력 오류', '지출 설명을 입력해주세요.');
       return;

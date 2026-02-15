@@ -37,6 +37,7 @@ public class ExpenseDto {
         @Schema(description = "지출 금액", example = "50000", required = true)
         @NotNull(message = "금액은 필수입니다")
         @Positive(message = "금액은 0보다 커야 합니다")
+        @DecimalMax(value = "100000000", message = "금액은 1억 원 이하여야 합니다")
         private BigDecimal amount;
 
         @Schema(description = "카테고리 (선택)", example = "식비")
@@ -70,6 +71,7 @@ public class ExpenseDto {
 
         @Schema(description = "지출 금액", example = "50000")
         @Positive(message = "금액은 0보다 커야 합니다")
+        @DecimalMax(value = "100000000", message = "금액은 1억 원 이하여야 합니다")
         private BigDecimal amount;
 
         @Schema(description = "카테고리", example = "식비")

@@ -626,7 +626,7 @@ export default function GameSettlementScreen() {
 interface RoundEntryFormProps {
   round: GameRoundWithEntries;
   participants: Participant[];
-  onUpdateEntries: (roundId: string, entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[], excludedParticipantIds?: string[]) => void;
+  onUpdateEntries: (roundId: string, entries: Omit<GameRoundEntry, 'id' | 'createdAt'>[], excludedParticipantIds?: string[]) => void | Promise<void>;
   onDeleteRound: (roundId: string) => void;
   disabled?: boolean;
 }
@@ -770,7 +770,7 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
     });
 
     const excludedArray = Array.from(excludedIds);
-    onUpdateEntries(round.round.id, entries, excludedArray.length > 0 ? excludedArray : undefined);
+    return onUpdateEntries(round.round.id, entries, excludedArray.length > 0 ? excludedArray : undefined);
   };
 
   return (

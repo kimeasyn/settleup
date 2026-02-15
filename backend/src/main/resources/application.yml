@@ -3,9 +3,9 @@ spring:
     name: settleup-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/settleup
-    username: settleup
-    password: settleup123
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:settleup}
+    username: ${DB_USERNAME:settleup}
+    password: ${DB_PASSWORD:settleup123}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -28,8 +28,8 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       timeout: 2000ms
       lettuce:
         pool:
