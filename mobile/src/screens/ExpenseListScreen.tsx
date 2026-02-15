@@ -138,7 +138,13 @@ export default function ExpenseListScreen() {
         <View style={styles.headerBar}>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => setAddModalVisible(true)}
+            onPress={() => {
+              if (participants.length === 0) {
+                Alert.alert('참가자 없음', '지출을 추가하려면 먼저 참가자를 추가해주세요.');
+                return;
+              }
+              setAddModalVisible(true);
+            }}
           >
             <Text style={styles.addButtonText}>+ 지출 추가</Text>
           </TouchableOpacity>
