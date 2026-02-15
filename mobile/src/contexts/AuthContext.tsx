@@ -29,13 +29,25 @@ export const useAuth = () => useContext(AuthContext);
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-const REDIRECT_URI = 'com.googleusercontent.apps.378883944979-66l2d08kd55vlpj98gpppdkelhnf5qti://';
+/**
+ * Google Client ID에서 리다이렉트 URI 생성
+ * 예: "XXX.apps.googleusercontent.com" → "com.googleusercontent.apps.XXX://"
+ */
+function buildGoogleRedirectUri(clientId: string): string {
+  const match = clientId.match(/^(.+)\.apps\.googleusercontent\.com$/);
+  if (!match) return '';
+  return `com.googleusercontent.apps.${match[1]}://`;
+}
 
 function getGoogleClientId(): string {
   return Platform.select({
     ios: GOOGLE_CLIENT_ID_IOS,
     android: GOOGLE_CLIENT_ID_ANDROID,
   }) ?? '';
+}
+
+function getRedirectUri(): string {
+  return buildGoogleRedirectUri(getGoogleClientId());
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -90,7 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function handleDeepLink(event: { url: string }) {
       const { url } = event;
-      if (!url.startsWith(REDIRECT_URI)) return;
+      const redirectUri = getRedirectUri();
+      if (!redirectUri || !url.startsWith(redirectUri)) return;
 
       const queryString = url.split('?')[1];
       if (!queryString) return;
@@ -111,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           code,
           codeVerifierRef.current,
           getGoogleClientId(),
-          REDIRECT_URI,
+          getRedirectUri(),
         );
 
         await handleSocialLogin('google', idToken);
@@ -173,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const params = new URLSearchParams({
         client_id: googleClientId,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: getRedirectUri(),
         response_type: 'code',
         scope: 'openid profile email',
         code_challenge: codeChallenge,
