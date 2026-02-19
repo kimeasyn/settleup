@@ -107,10 +107,11 @@ public class SettlementController {
             )
     })
     @GetMapping
-    public ResponseEntity<List<SettlementResponse>> getAllSettlements() {
-        log.info("GET /settlements - Getting all settlements");
+    public ResponseEntity<List<SettlementResponse>> getAllSettlements(
+            @AuthenticationPrincipal UUID userId) {
+        log.info("GET /settlements - Getting settlements for user: {}", userId);
 
-        List<SettlementResponse> settlements = settlementService.getAllSettlements();
+        List<SettlementResponse> settlements = settlementService.getAllSettlements(userId);
 
         return ResponseEntity.ok(settlements);
     }
@@ -136,6 +137,7 @@ public class SettlementController {
     })
     @GetMapping("/search")
     public ResponseEntity<Page<SettlementResponse>> searchSettlements(
+            @AuthenticationPrincipal UUID userId,
             @Parameter(description = "검색어 (제목 또는 설명)", example = "제주도")
             @RequestParam(required = false) String query,
             @Parameter(description = "정산 상태", example = "ACTIVE")
@@ -147,11 +149,11 @@ public class SettlementController {
             @Parameter(description = "페이지 크기", example = "20")
             @RequestParam(defaultValue = "20") int size) {
 
-        log.info("GET /settlements/search - query='{}', status={}, type={}, page={}, size={}",
-                query, status, type, page, size);
+        log.info("GET /settlements/search - userId={}, query='{}', status={}, type={}, page={}, size={}",
+                userId, query, status, type, page, size);
 
         Page<SettlementResponse> settlements = settlementService.searchSettlements(
-                query, status, type, page, size);
+                userId, query, status, type, page, size);
 
         return ResponseEntity.ok(settlements);
     }

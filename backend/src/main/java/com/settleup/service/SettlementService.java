@@ -91,14 +91,16 @@ public class SettlementService {
     }
 
     /**
-     * 모든 정산 목록 조회
+     * 사용자별 정산 목록 조회
      */
-    public List<SettlementResponse> getAllSettlements() {
-        log.info("Getting all settlements");
+    public List<SettlementResponse> getAllSettlements(UUID userId) {
+        log.info("Getting settlements for user: {}", userId);
 
-        List<Settlement> settlements = settlementRepository.findAll();
+        if (userId == null) {
+            return List.of();
+        }
 
-        return settlements.stream()
+        return settlementRepository.findByUserAccess(userId).stream()
                 .map(SettlementResponse::from)
                 .collect(Collectors.toList());
     }
@@ -107,35 +109,33 @@ public class SettlementService {
      * 정산 목록 조회 (페이징, 필터링, 검색)
      */
     public Page<SettlementResponse> searchSettlements(
+            UUID userId,
             String query,
             SettlementStatus status,
             SettlementType type,
             int page,
             int size) {
 
-        log.info("Searching settlements: query='{}', status={}, type={}, page={}, size={}",
-                query, status, type, page, size);
+        log.info("Searching settlements: userId={}, query='{}', status={}, type={}, page={}, size={}",
+                userId, query, status, type, page, size);
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Settlement> settlements;
 
+        if (userId == null) {
+            return Page.empty(pageable);
+        }
+
         if (query != null && !query.trim().isEmpty()) {
-            // 검색어가 있는 경우
-            settlements = settlementRepository
-                    .findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrderByUpdatedAtDesc(
-                            query, query, pageable);
+            settlements = settlementRepository.findByUserAccessAndQuery(userId, query, pageable);
         } else if (status != null && type != null) {
-            // 상태와 타입 모두 필터링
-            settlements = settlementRepository.findByStatusAndTypeOrderByUpdatedAtDesc(status, type, pageable);
+            settlements = settlementRepository.findByUserAccessAndStatusAndType(userId, status, type, pageable);
         } else if (status != null) {
-            // 상태만 필터링
-            settlements = settlementRepository.findByStatusOrderByUpdatedAtDesc(status, pageable);
+            settlements = settlementRepository.findByUserAccessAndStatus(userId, status, pageable);
         } else if (type != null) {
-            // 타입만 필터링
-            settlements = settlementRepository.findByTypeOrderByUpdatedAtDesc(type, pageable);
+            settlements = settlementRepository.findByUserAccessAndType(userId, type, pageable);
         } else {
-            // 필터링 없이 전체 조회
-            settlements = settlementRepository.findAllByOrderByUpdatedAtDesc(pageable);
+            settlements = settlementRepository.findByUserAccessPaged(userId, pageable);
         }
 
         return settlements.map(SettlementResponse::from);
