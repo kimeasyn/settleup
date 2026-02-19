@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     [
       '@react-native-seoul/kakao-login',
       {
-        nativeAppKey: process.env.KAKAO_NATIVE_APP_KEY || 'placeholder',
+        kakaoAppKey: process.env.KAKAO_NATIVE_APP_KEY || 'placeholder',
       },
     ],
     '@react-native-community/datetimepicker',
