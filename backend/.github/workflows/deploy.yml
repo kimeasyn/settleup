@@ -1,22 +1,11 @@
-# ============================================
-# SettleUp Backend - CI/CD Pipeline
-# ============================================
-# main 브랜치에 push → Docker 빌드 → ECR push → ECS 배포
-#
-# 흐름:
-# 1. 코드 체크아웃
-# 2. AWS 로그인
-# 3. ECR 로그인
-# 4. Docker 이미지 빌드 + push
-# 5. ECS Task Definition 업데이트
-# 6. ECS Service에 새 Task 배포
-
 name: Deploy to ECS
 
 on:
   push:
     branches: [main]
-  # 수동 실행도 가능 (GitHub Actions 탭에서 버튼 클릭)
+    # backend 코드가 변경됐을 때만 실행
+    paths:
+      - 'backend/**'
   workflow_dispatch:
 
 env:
@@ -32,11 +21,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 코드 체크아웃
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. AWS 자격증명 설정
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -44,25 +31,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 3. ECR 로그인
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 4. Docker 이미지 빌드 + ECR push
       - name: Build and push Docker image
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile backend
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      # 5. 현재 ECS Task Definition 가져오기
       - name: Download current task definition
         run: |
           aws ecs describe-task-definition \
@@ -70,7 +54,6 @@ jobs:
             --query taskDefinition \
             > task-definition.json
 
-      # 6. Task Definition에서 이미지 태그 업데이트
       - name: Update image in task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -79,7 +62,6 @@ jobs:
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
 
-      # 7. ECS 서비스에 새 Task Definition 배포
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
