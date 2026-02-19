@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     [
       '@react-native-seoul/kakao-login',
       {
-        nativeAppKey: process.env.KAKAO_NATIVE_APP_KEY ?? '',
+        nativeAppKey: process.env.KAKAO_NATIVE_APP_KEY || 'placeholder',
       },
     ],
     '@react-native-community/datetimepicker',
@@ -54,9 +54,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     'expo-web-browser',
   ],
   extra: {
-    googleClientIdIos: process.env.GOOGLE_CLIENT_ID_IOS ?? '',
-    googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID ?? '',
-    kakaoNativeAppKey: process.env.KAKAO_NATIVE_APP_KEY ?? '',
+    eas: {
+      projectId: "edd6813d-018e-4d92-a94a-0cf5db882276",
+    },
+    googleClientIdIos: process.env.GOOGLE_CLIENT_ID_IOS || 'placeholder',
+    googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID || 'placeholder',
+    kakaoNativeAppKey: process.env.KAKAO_NATIVE_APP_KEY || 'placeholder',
   },
   };
 };
