@@ -26,17 +26,6 @@ spring:
         default_schema: public
     open-in-view: false
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      timeout: 2000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-
 server:
   port: 8080
   servlet:
