@@ -99,3 +99,20 @@ htmlcov/
 # IntelliJ HTTP Client
 http-client.private.env.json
 .idea/httpRequests/
+
+
+# Terraform state (비밀번호 등 민감정보 포함!)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# 변수 값 파일 (비밀번호 포함!)
+terraform.tfvars
+
+# Crash log
+crash.log
+crash.*.log
+
+# Plan 파일
+*.tfplan
