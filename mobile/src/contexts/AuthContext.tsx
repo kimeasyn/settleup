@@ -39,11 +39,10 @@ function buildGoogleRedirectUri(clientId: string): string {
 }
 
 function getGoogleClientId(): string {
+  // 브라우저 기반 OAuth + 커스텀 스킴 리다이렉트는 iOS 타입 클라이언트 ID만 지원
+  // Android 클라이언트 ID는 redirect_uri를 지원하지 않음
   const extra = Constants.expoConfig?.extra;
-  return Platform.select({
-    ios: extra?.googleClientIdIos,
-    android: extra?.googleClientIdAndroid,
-  }) ?? '';
+  return extra?.googleClientIdIos ?? '';
 }
 
 function getRedirectUri(): string {

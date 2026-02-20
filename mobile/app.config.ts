@@ -41,7 +41,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   android: {
     package: 'com.settleup.app',
     permissions: ['INTERNET'],
-    usesCleartextTraffic: true,
   },
   plugins: [
     [
@@ -49,6 +48,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       {
         kakaoAppKey: process.env.KAKAO_NATIVE_APP_KEY || 'placeholder',
         kotlinVersion: '2.0.21',
+      },
+    ],
+    [
+      'expo-build-properties',
+      {
+        android: {
+          usesCleartextTraffic: true,
+        },
       },
     ],
     '@react-native-community/datetimepicker',
