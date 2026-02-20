@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import Constants from 'expo-constants';
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '../auth/tokenStorage';
 import { LoginResponse } from '../../models/Auth';
 
@@ -24,8 +25,8 @@ function notifyAuthExpired() {
 
 // 환경에 따른 API URL 설정
 const API_BASE_URL = __DEV__
-  ? 'http://localhost:8080/api/v1'  // 개발 환경
-  : 'https://api.settleup.com/api/v1';  // 프로덕션 환경
+  ? 'http://localhost:8080/api/v1'
+  : (Constants.expoConfig?.extra?.apiBaseUrl ?? 'http://settleup-alb-1837776955.ap-northeast-2.elb.amazonaws.com/api/v1');
 
 /**
  * Axios 인스턴스 생성
