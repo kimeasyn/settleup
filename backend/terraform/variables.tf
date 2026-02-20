@@ -78,8 +78,8 @@ variable "google_client_id_android" {
   type        = string
 }
 
-variable "kakao_rest_api_key" {
-  description = "Kakao REST API Key"
+variable "kakao_native_app_key" {
+  description = "Kakao Native App Key"
   type        = string
   sensitive   = true
 }

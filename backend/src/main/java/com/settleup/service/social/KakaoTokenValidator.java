@@ -27,8 +27,8 @@ public class KakaoTokenValidator implements SocialTokenValidator {
     private static final String KAKAO_ISSUER = "https://kauth.kakao.com";
     private static final String KAKAO_JWKS_URI = "https://kauth.kakao.com/.well-known/jwks.json";
 
-    @Value("${oauth.kakao.rest-api-key}")
-    private String restApiKey;
+    @Value("${oauth.kakao.native-app-key}")
+    private String nativeAppKey;
 
     private ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
 
@@ -45,12 +45,12 @@ public class KakaoTokenValidator implements SocialTokenValidator {
             Set<String> requiredClaims = new HashSet<>(Arrays.asList("sub", "iss", "aud", "exp", "iat"));
             JWTClaimsSet exactMatchClaims = new JWTClaimsSet.Builder()
                     .issuer(KAKAO_ISSUER)
-                    .audience(restApiKey)
+                    .audience(nativeAppKey)
                     .build();
             jwtProcessor.setJWTClaimsSetVerifier(
                     new DefaultJWTClaimsVerifier<>(exactMatchClaims, requiredClaims));
 
-            log.info("Kakao OIDC JWT processor initialized (issuer={}, audience={})", KAKAO_ISSUER, restApiKey);
+            log.info("Kakao OIDC JWT processor initialized (issuer={}, audience={})", KAKAO_ISSUER, nativeAppKey);
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize Kakao JWT processor", e);
         }

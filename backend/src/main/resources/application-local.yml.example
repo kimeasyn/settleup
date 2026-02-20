@@ -11,7 +11,7 @@ oauth:
   google:
     client-id: "YOUR_GOOGLE_CLIENT_ID_HERE"
   kakao:
-    rest-api-key: "YOUR_KAKAO_REST_API_KEY_HERE"
+    native-app-key: "YOUR_KAKAO_NATIVE_APP_KEY_HERE"
 
 # JWT 비밀키 - 32자 이상의 랜덤 문자열로 변경하세요
 jwt:

@@ -138,7 +138,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "DB_PASSWORD", value = var.db_password },
         { name = "GOOGLE_CLIENT_ID_IOS", value = var.google_client_id_ios },
         { name = "GOOGLE_CLIENT_ID_ANDROID", value = var.google_client_id_android },
-        { name = "KAKAO_REST_API_KEY", value = var.kakao_rest_api_key },
+        { name = "KAKAO_NATIVE_APP_KEY", value = var.kakao_native_app_key },
         { name = "JWT_SECRET", value = var.jwt_secret },
       ]
 

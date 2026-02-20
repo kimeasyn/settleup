@@ -33,13 +33,13 @@ server:
 
 # OAuth 설정
 # Google: ID Token 검증 시 audience로 사용
-# Kakao: OIDC ID Token 검증 시 audience(aud) 클레임 검증에 사용 (REST API 키 = OIDC client_id)
+# Kakao: OIDC ID Token 검증 시 audience(aud) 클레임 검증에 사용 (Native App Key)
 oauth:
   google:
     client-id-ios: ${GOOGLE_CLIENT_ID_IOS:your-google-client-id-ios}
     client-id-android: ${GOOGLE_CLIENT_ID_ANDROID:your-google-client-id-android}
   kakao:
-    rest-api-key: ${KAKAO_REST_API_KEY:your-kakao-rest-api-key}
+    native-app-key: ${KAKAO_NATIVE_APP_KEY:your-kakao-native-app-key}
 
 # JWT 설정
 jwt:
