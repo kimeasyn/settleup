@@ -99,8 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Google OAuth 딥링크 콜백
   useEffect(() => {
-    async function handleDeepLink(event: { url: string }) {
-      const { url } = event;
+    async function processGoogleRedirect(url: string) {
       const redirectUri = getRedirectUri();
       if (!redirectUri || !url.startsWith(redirectUri)) return;
 
@@ -127,7 +126,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           getRedirectUri(),
         );
 
-        await handleSocialLogin('google', idToken);
+        const response = await authApi.loginWithGoogle(idToken);
+        await tokenStorage.saveTokens({
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+          accessTokenExpiresIn: response.accessTokenExpiresIn,
+        });
+        const loggedInUser: User = {
+          id: response.userId,
+          name: response.userName,
+          email: response.userEmail,
+        };
+        await tokenStorage.saveUser(loggedInUser);
+
+        // Android에서 백그라운드→포그라운드 전환 시 상태 업데이트가
+        // 즉시 반영되지 않는 이슈 대응
+        setTimeout(() => setUser(loggedInUser), 0);
       } catch (e: any) {
         console.error('[Auth] Google code exchange failed:', e);
         Alert.alert('Google 로그인 실패', e?.message || JSON.stringify(e));
@@ -137,7 +151,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const subscription = Linking.addEventListener('url', handleDeepLink);
+    // 앱이 실행 중일 때 딥링크 수신
+    const subscription = Linking.addEventListener('url', (event) => {
+      processGoogleRedirect(event.url);
+    });
+
+    // Cold start: 앱이 딥링크로 새로 실행된 경우
+    Linking.getInitialURL().then((url) => {
+      if (url) processGoogleRedirect(url);
+    });
+
     return () => subscription.remove();
   }, []);
 
