@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { Platform, Linking } from 'react-native';
+import { Platform, Linking, Alert } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { GOOGLE_CLIENT_ID_IOS, GOOGLE_CLIENT_ID_ANDROID } from '@env';
 import { User, SocialProvider } from '../models/Auth';
 import * as tokenStorage from '../services/auth/tokenStorage';
 import * as authApi from '../services/auth/authApi';
@@ -40,9 +39,10 @@ function buildGoogleRedirectUri(clientId: string): string {
 }
 
 function getGoogleClientId(): string {
+  const extra = Constants.expoConfig?.extra;
   return Platform.select({
-    ios: GOOGLE_CLIENT_ID_IOS,
-    android: GOOGLE_CLIENT_ID_ANDROID,
+    ios: extra?.googleClientIdIos,
+    android: extra?.googleClientIdAndroid,
   }) ?? '';
 }
 
@@ -114,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('[Auth] Google 인증 에러:', error, params.get('error_description'));
+        Alert.alert('Google 인증 에러', `${error}: ${params.get('error_description')}`);
         return;
       }
 
@@ -128,8 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
 
         await handleSocialLogin('google', idToken);
-      } catch (e) {
+      } catch (e: any) {
         console.error('[Auth] Google code exchange failed:', e);
+        Alert.alert('Google 로그인 실패', e?.message || JSON.stringify(e));
       } finally {
         codeVerifierRef.current = null;
         isLoggingIn.current = false;
@@ -174,9 +176,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoggingIn.current = true;
 
     const googleClientId = getGoogleClientId();
-    if (!googleClientId) {
+    if (!googleClientId || googleClientId === 'placeholder') {
       isLoggingIn.current = false;
-      throw new Error('Google Client ID가 설정되지 않았습니다. .env 파일을 확인하세요.');
+      throw new Error('Google Client ID가 설정되지 않았습니다. 환경변수를 확인하세요.');
     }
 
     try {
@@ -212,9 +214,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await kakaoSdkLogin();
       const token = result.idToken || result.accessToken;
       if (token) {
-        await handleSocialLogin('kakao', token);
+        try {
+          await handleSocialLogin('kakao', token);
+        } catch (apiError: any) {
+          console.error('[Auth] Kakao backend API failed:', apiError);
+          Alert.alert('카카오 로그인 API 실패', apiError?.message || JSON.stringify(apiError));
+          throw apiError;
+        }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Auth] Kakao login failed:', e);
       throw e;
     }
