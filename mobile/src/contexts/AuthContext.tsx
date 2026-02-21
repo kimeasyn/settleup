@@ -99,8 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Google OAuth 딥링크 콜백
   useEffect(() => {
-    async function processGoogleRedirect(url: string) {
+    async function processGoogleRedirect(url: string, source: string) {
       const redirectUri = getRedirectUri();
+      Alert.alert('[DEBUG 1]', `source: ${source}\nurl: ${url.substring(0, 80)}...\nredirectUri: ${redirectUri}\nmatch: ${url.startsWith(redirectUri || '')}`);
+
       if (!redirectUri || !url.startsWith(redirectUri)) return;
 
       const queryString = url.split('?')[1];
@@ -111,11 +113,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const error = params.get('error');
 
       if (error) {
-        console.error('[Auth] Google 인증 에러:', error, params.get('error_description'));
         Alert.alert('Google 인증 에러', `${error}: ${params.get('error_description')}`);
         return;
       }
 
+      Alert.alert('[DEBUG 2]', `code: ${code ? 'YES' : 'NO'}\ncodeVerifier: ${codeVerifierRef.current ? 'YES' : 'NO'}`);
       if (!code || !codeVerifierRef.current) return;
 
       try {
@@ -125,8 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           getGoogleClientId(),
           getRedirectUri(),
         );
+        Alert.alert('[DEBUG 3]', `idToken 교환 성공, 백엔드 호출 시작`);
 
         const response = await authApi.loginWithGoogle(idToken);
+        Alert.alert('[DEBUG 4]', `백엔드 로그인 성공: ${response.userName}`);
+
         await tokenStorage.saveTokens({
           accessToken: response.accessToken,
           refreshToken: response.refreshToken,
@@ -138,10 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: response.userEmail,
         };
         await tokenStorage.saveUser(loggedInUser);
-
-        // Android에서 백그라운드→포그라운드 전환 시 상태 업데이트가
-        // 즉시 반영되지 않는 이슈 대응
-        setTimeout(() => setUser(loggedInUser), 0);
+        setUser(loggedInUser);
       } catch (e: any) {
         console.error('[Auth] Google code exchange failed:', e);
         Alert.alert('Google 로그인 실패', e?.message || JSON.stringify(e));
@@ -153,12 +155,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 앱이 실행 중일 때 딥링크 수신
     const subscription = Linking.addEventListener('url', (event) => {
-      processGoogleRedirect(event.url);
+      processGoogleRedirect(event.url, 'addEventListener');
     });
 
     // Cold start: 앱이 딥링크로 새로 실행된 경우
     Linking.getInitialURL().then((url) => {
-      if (url) processGoogleRedirect(url);
+      if (url) processGoogleRedirect(url, 'getInitialURL');
     });
 
     return () => subscription.remove();
