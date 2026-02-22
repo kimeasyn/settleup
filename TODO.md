@@ -118,11 +118,13 @@
   - AnimatedButton에 onPress 실행 중 disabled 처리
   - TravelSettlement/GameSettlement 삭제·완료 버튼에 actionInProgress 가드 추가
 
-- [ ] **지출 입력 시 참가자 0명 사전 차단** (0.5일)
+- [x] **지출 입력 시 참가자 0명 사전 차단** (0.5일)
   - AddExpenseModal 열기 전 참가자 존재 여부 검증
+  - 게임 라운드 추가 시 활성 참가자 2명 이상 검증
 
-- [ ] **금액 검증 강화** (0.5일)
+- [x] **금액 검증 강화** (0.5일)
   - 0원/음수 지출 차단 (모바일 + 백엔드)
+  - GameRoundEntry/EntryData DTO에 @NotNull 검증 추가
 
 ### P1 - 배포 품질
 

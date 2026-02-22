@@ -1,6 +1,7 @@
 package com.settleup.domain.game;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ public class GameRoundEntry {
     private UUID participantId;
 
     @Column(name = "amount", nullable = false, precision = 12, scale = 2)
+    @NotNull(message = "금액은 필수입니다")
     private BigDecimal amount;
 
     @Column(name = "memo", length = 500)

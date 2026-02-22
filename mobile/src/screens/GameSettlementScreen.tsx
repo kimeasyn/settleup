@@ -132,6 +132,11 @@ export default function GameSettlementScreen() {
    * 새 라운드 추가
    */
   const handleAddRound = async () => {
+    const activeParticipants = participants.filter(p => p.isActive);
+    if (activeParticipants.length < 2) {
+      Toast.warning('라운드를 추가하려면 활성 참가자가 2명 이상이어야 합니다.');
+      return;
+    }
     try {
       const newRound = await localGameSettlementService.createLocalRound(settlementId);
       await loadData();

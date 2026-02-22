@@ -3,6 +3,7 @@ package com.settleup.dto;
 import com.settleup.domain.game.GameRound;
 import com.settleup.domain.game.GameRoundEntry;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -48,9 +49,11 @@ public class GameRoundDto {
     @Schema(description = "엔트리 데이터")
     public static class EntryData {
 
+        @NotNull(message = "참가자 ID는 필수입니다")
         @Schema(description = "참가자 ID", required = true)
         private UUID participantId;
 
+        @NotNull(message = "금액은 필수입니다")
         @Schema(description = "금액 (+: 딴 돈, -: 잃은 돈)", required = true)
         private BigDecimal amount;
 
