@@ -114,8 +114,9 @@
   - AppNavigator에 라우트 추가
   - joinByInviteCode API 연동 (API는 이미 있음)
 
-- [ ] **더블 탭 중복 제출 방지** (0.5일)
+- [x] **더블 탭 중복 제출 방지** (0.5일)
   - AnimatedButton에 onPress 실행 중 disabled 처리
+  - TravelSettlement/GameSettlement 삭제·완료 버튼에 actionInProgress 가드 추가
 
 - [ ] **지출 입력 시 참가자 0명 사전 차단** (0.5일)
   - AddExpenseModal 열기 전 참가자 존재 여부 검증
@@ -157,11 +158,11 @@
 
 ## 배포 준비
 
-- [ ] 백엔드 Dockerfile 작성
-- [ ] 모바일 EAS Build 설정 (eas.json)
-- [ ] CI/CD 파이프라인 (GitHub Actions)
-- [ ] 운영 환경 설정 (application-prod 프로필)
-- [ ] main 브랜치 병합
+- [x] 백엔드 Dockerfile 작성
+- [x] 모바일 EAS Build 설정 (eas.json)
+- [x] CI/CD 파이프라인 (GitHub Actions)
+- [x] 운영 환경 설정 (application-prod 프로필)
+- [x] main 브랜치 병합
 
 ---
 

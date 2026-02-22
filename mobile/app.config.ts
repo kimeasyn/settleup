@@ -27,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   scheme: schemes,
   orientation: 'portrait',
   userInterfaceStyle: 'light',
+  icon: './assets/icon.png',
   splash: {
     resizeMode: 'contain',
     backgroundColor: '#ffffff',
@@ -41,6 +42,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   android: {
     package: 'com.settleup.app',
     permissions: ['INTERNET'],
+    adaptiveIcon: {
+      foregroundImage: './assets/icon.png',
+      backgroundColor: '#FFFFFF',
+    },
   },
   plugins: [
     [

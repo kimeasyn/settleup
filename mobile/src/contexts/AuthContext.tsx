@@ -6,6 +6,7 @@ import * as tokenStorage from '../services/auth/tokenStorage';
 import * as authApi from '../services/auth/authApi';
 import { generateCodeVerifier, generateCodeChallenge } from '../services/auth/pkce';
 import { onAuthExpired } from '../services/api/client';
+import { clearDatabase } from '../services/storage/database';
 
 interface AuthContextType {
   user: User | null;
@@ -236,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { login: kakaoSdkLogin } = require('@react-native-seoul/kakao-login');
       const result = await kakaoSdkLogin();
+      Alert.alert('[DEBUG Kakao]', `idToken: ${result.idToken ? 'YES (' + result.idToken.substring(0, 20) + '...)' : 'NULL'}\naccessToken: ${result.accessToken ? 'YES' : 'NULL'}\nkeys: ${Object.keys(result).join(', ')}`);
       const token = result.idToken || result.accessToken;
       if (token) {
         try {
@@ -271,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       await tokenStorage.clearTokens();
+      await clearDatabase().catch(() => {});
       setUser(null);
     }
   }, []);

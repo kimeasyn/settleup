@@ -47,6 +47,7 @@ export default function TravelSettlementScreen() {
   const [remainderModalVisible, setRemainderModalVisible] = useState(false);
   const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
   const [remainder, setRemainder] = useState(0);
+  const [actionInProgress, setActionInProgress] = useState(false);
 
   const loadData = async () => {
     try {
@@ -144,6 +145,7 @@ export default function TravelSettlementScreen() {
   };
 
   const handleDeleteSettlement = () => {
+    if (actionInProgress) return;
     Alert.alert(
       '정산 삭제',
       '정산을 삭제하시겠습니까? 관련된 모든 데이터가 삭제됩니다.',
@@ -153,6 +155,7 @@ export default function TravelSettlementScreen() {
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
+            setActionInProgress(true);
             try {
               await deleteSettlement(settlementId);
               Alert.alert('완료', '정산을 삭제했습니다.');
@@ -160,6 +163,8 @@ export default function TravelSettlementScreen() {
             } catch (error) {
               console.error('정산 삭제 실패:', error);
               Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+            } finally {
+              setActionInProgress(false);
             }
           },
         },
@@ -168,6 +173,7 @@ export default function TravelSettlementScreen() {
   };
 
   const handleToggleComplete = () => {
+    if (actionInProgress) return;
     if (isCompleted) {
       Alert.alert(
         '정산 다시 열기',
@@ -177,11 +183,14 @@ export default function TravelSettlementScreen() {
           {
             text: '다시 열기',
             onPress: async () => {
+              setActionInProgress(true);
               try {
                 await updateSettlement(settlementId, { status: SettlementStatus.ACTIVE });
                 await loadData();
               } catch (error) {
                 Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+              } finally {
+                setActionInProgress(false);
               }
             },
           },
@@ -196,11 +205,14 @@ export default function TravelSettlementScreen() {
           {
             text: '완료',
             onPress: async () => {
+              setActionInProgress(true);
               try {
                 await updateSettlement(settlementId, { status: SettlementStatus.COMPLETED });
                 await loadData();
               } catch (error) {
                 Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+              } finally {
+                setActionInProgress(false);
               }
             },
           },
@@ -381,8 +393,9 @@ export default function TravelSettlementScreen() {
               <Text style={styles.actionButtonText}>수정</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.deleteButton}
+              style={[styles.deleteButton, actionInProgress && styles.disabledAction]}
               onPress={handleDeleteSettlement}
+              disabled={actionInProgress}
               activeOpacity={0.8}
             >
               <MaterialCommunityIcons name="trash-can-outline" size={18} color={Colors.primary.contrast} />
@@ -393,8 +406,9 @@ export default function TravelSettlementScreen() {
 
         {/* 정산 완료/다시 열기 */}
         <TouchableOpacity
-          style={[styles.toggleCompleteButton, isCompleted ? styles.reopenStyle : styles.completeStyle]}
+          style={[styles.toggleCompleteButton, isCompleted ? styles.reopenStyle : styles.completeStyle, actionInProgress && styles.disabledAction]}
           onPress={handleToggleComplete}
+          disabled={actionInProgress}
           activeOpacity={0.8}
         >
           <MaterialCommunityIcons
@@ -626,5 +640,8 @@ const styles = StyleSheet.create({
   },
   reopenStyle: {
     backgroundColor: Colors.status.warning,
+  },
+  disabledAction: {
+    opacity: 0.5,
   },
 });

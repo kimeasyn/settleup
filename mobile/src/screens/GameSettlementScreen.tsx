@@ -59,6 +59,7 @@ export default function GameSettlementScreen() {
   const [editSettlementModalVisible, setEditSettlementModalVisible] = useState(false);
   const [addParticipantModalVisible, setAddParticipantModalVisible] = useState(false);
   const [members, setMembers] = useState<SettlementMember[]>([]);
+  const [actionInProgress, setActionInProgress] = useState(false);
 
   /**
    * 데이터 로드
@@ -157,6 +158,7 @@ export default function GameSettlementScreen() {
    * 정산 삭제
    */
   const handleDeleteSettlement = () => {
+    if (actionInProgress) return;
     Alert.alert(
       '정산 삭제',
       `"${settlement?.title}"을(를) 삭제하시겠습니까?\n관련된 모든 데이터가 삭제됩니다.`,
@@ -166,11 +168,14 @@ export default function GameSettlementScreen() {
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
+            setActionInProgress(true);
             try {
               await deleteSettlement(settlementId);
               navigation.goBack();
             } catch (error) {
               Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+            } finally {
+              setActionInProgress(false);
             }
           },
         },
@@ -315,6 +320,7 @@ export default function GameSettlementScreen() {
    * 정산 완료/다시 열기 토글
    */
   const handleToggleComplete = () => {
+    if (actionInProgress) return;
     if (isCompleted) {
       Alert.alert(
         '정산 다시 열기',
@@ -324,11 +330,14 @@ export default function GameSettlementScreen() {
           {
             text: '다시 열기',
             onPress: async () => {
+              setActionInProgress(true);
               try {
                 await updateSettlement(settlementId, { status: SettlementStatus.ACTIVE });
                 await loadData();
               } catch (error) {
                 Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+              } finally {
+                setActionInProgress(false);
               }
             },
           },
@@ -343,11 +352,14 @@ export default function GameSettlementScreen() {
           {
             text: '완료',
             onPress: async () => {
+              setActionInProgress(true);
               try {
                 await updateSettlement(settlementId, { status: SettlementStatus.COMPLETED });
                 await loadData();
               } catch (error) {
                 Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+              } finally {
+                setActionInProgress(false);
               }
             },
           },
@@ -448,8 +460,9 @@ export default function GameSettlementScreen() {
           )}
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.completeToggleBtn, isCompleted ? styles.reopenBtn : styles.completeBtn]}
+              style={[styles.completeToggleBtn, isCompleted ? styles.reopenBtn : styles.completeBtn, actionInProgress && styles.disabledAction]}
               onPress={handleToggleComplete}
+              disabled={actionInProgress}
             >
               <Text style={styles.completeBtnText}>
                 {isCompleted ? '다시 열기' : '정산 완료'}
@@ -464,7 +477,7 @@ export default function GameSettlementScreen() {
               >
                 <Text style={styles.editButtonText}>수정</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteSettlement}>
+              <TouchableOpacity style={[styles.deleteButton, actionInProgress && styles.disabledAction]} onPress={handleDeleteSettlement} disabled={actionInProgress}>
                 <Text style={styles.deleteButtonText}>삭제</Text>
               </TouchableOpacity>
             </View>
@@ -1350,5 +1363,8 @@ const styles = StyleSheet.create({
   checkboxLabelExcluded: {
     color: Colors.text.disabled,
     textDecorationLine: 'line-through',
+  },
+  disabledAction: {
+    opacity: 0.5,
   },
 });
