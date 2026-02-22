@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +16,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { SettlementType, CreateSettlementRequest } from '../models/Settlement';
 import { createSettlement } from '../services/api/settlementService';
 import { saveSettlement } from '../services/storage/settlementStorage';
+import { Toast } from '../components/ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
@@ -47,17 +47,17 @@ const CreateSettlementScreen = () => {
    */
   const validateForm = (): boolean => {
     if (!title.trim()) {
-      Alert.alert('입력 오류', '정산 제목을 입력해주세요.');
+      Toast.warning('정산 제목을 입력해주세요.');
       return false;
     }
 
     if (title.length > 100) {
-      Alert.alert('입력 오류', '제목은 100자 이내로 입력해주세요.');
+      Toast.warning('제목은 100자 이내로 입력해주세요.');
       return false;
     }
 
     if (description.length > 500) {
-      Alert.alert('입력 오류', '설명은 500자 이내로 입력해주세요.');
+      Toast.warning('설명은 500자 이내로 입력해주세요.');
       return false;
     }
 
@@ -92,28 +92,19 @@ const CreateSettlementScreen = () => {
       console.log('✅ Settlement saved to local storage');
 
       // 3. 성공 메시지 및 화면 이동
-      Alert.alert('성공', '정산이 생성되었습니다!', [
-        {
-          text: '확인',
-          onPress: () => {
-            if (newSettlement.type === SettlementType.GAME) {
-              navigation.replace('GameSettlement', {
-                settlementId: newSettlement.id,
-              });
-            } else {
-              navigation.replace('TravelSettlement', {
-                settlementId: newSettlement.id,
-              });
-            }
-          },
-        },
-      ]);
+      Toast.success('정산이 생성되었습니다!');
+      if (newSettlement.type === SettlementType.GAME) {
+        navigation.replace('GameSettlement', {
+          settlementId: newSettlement.id,
+        });
+      } else {
+        navigation.replace('TravelSettlement', {
+          settlementId: newSettlement.id,
+        });
+      }
     } catch (error) {
       console.error('정산 생성 실패:', error);
-      Alert.alert(
-        '오류',
-        '정산 생성에 실패했습니다. 네트워크 연결을 확인하고 다시 시도해주세요.'
-      );
+      Toast.error('정산 생성에 실패했습니다. 네트워크 연결을 확인하고 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }
@@ -208,7 +199,7 @@ const CreateSettlementScreen = () => {
         <View style={styles.section}>
           <Text style={styles.label}>통화</Text>
           <View style={styles.currencyDisplay}>
-            <Text style={styles.currencyText}>KRW (\u20A9)</Text>
+            <Text style={styles.currencyText}>KRW (₩)</Text>
           </View>
           <Text style={styles.helperText}>현재는 원화(KRW)만 지원됩니다</Text>
         </View>

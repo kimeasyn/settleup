@@ -8,10 +8,10 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { Settlement, UpdateSettlementRequest, SettlementStatus } from '../models/Settlement';
+import { Toast } from './ToastMessage';
 
 interface EditSettlementModalProps {
   visible: boolean;
@@ -74,32 +74,32 @@ export default function EditSettlementModal({
   const handleSubmit = async () => {
     // 유효성 검증
     if (!title.trim()) {
-      Alert.alert('입력 오류', '제목을 입력해주세요.');
+      Toast.warning('제목을 입력해주세요.');
       return;
     }
 
     if (title.trim().length > 100) {
-      Alert.alert('입력 오류', '제목은 최대 100자까지 입력할 수 있습니다.');
+      Toast.warning('제목은 최대 100자까지 입력할 수 있습니다.');
       return;
     }
 
     if (description.length > 500) {
-      Alert.alert('입력 오류', '설명은 최대 500자까지 입력할 수 있습니다.');
+      Toast.warning('설명은 최대 500자까지 입력할 수 있습니다.');
       return;
     }
 
     if (startDate && !isValidDateFormat(startDate)) {
-      Alert.alert('입력 오류', '시작일 형식이 올바르지 않습니다. (YYYY-MM-DD)');
+      Toast.warning('시작일 형식이 올바르지 않습니다. (YYYY-MM-DD)');
       return;
     }
 
     if (endDate && !isValidDateFormat(endDate)) {
-      Alert.alert('입력 오류', '종료일 형식이 올바르지 않습니다. (YYYY-MM-DD)');
+      Toast.warning('종료일 형식이 올바르지 않습니다. (YYYY-MM-DD)');
       return;
     }
 
     if (currency && currency.length !== 3) {
-      Alert.alert('입력 오류', '통화 코드는 3글자여야 합니다. (예: KRW, USD, EUR)');
+      Toast.warning('통화 코드는 3글자여야 합니다. (예: KRW, USD, EUR)');
       return;
     }
 
@@ -116,8 +116,6 @@ export default function EditSettlementModal({
       };
 
       await onSubmit(data);
-
-      Alert.alert('완료', '정산 정보를 수정했습니다.');
       handleClose();
     } catch (error: any) {
       console.error('정산 수정 실패:', error);
@@ -127,7 +125,7 @@ export default function EditSettlementModal({
         errorMessage = error.response.data.message;
       }
 
-      Alert.alert('오류', errorMessage);
+      Toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

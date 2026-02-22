@@ -34,6 +34,7 @@ import {
   formatGameAmount,
   createGameSummary,
 } from '../utils/gameSettlementUtils';
+import { Toast } from '../components/ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
@@ -103,7 +104,7 @@ export default function GameSettlementScreen() {
       }
     } catch (error) {
       console.error('게임 정산 데이터 로드 실패:', error);
-      Alert.alert('오류', '데이터를 불러올 수 없습니다.');
+      Toast.error('데이터를 불러올 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -137,7 +138,7 @@ export default function GameSettlementScreen() {
       setExpandedRoundId(newRound.id);
     } catch (error) {
       console.error('라운드 생성 실패:', error);
-      Alert.alert('오류', '라운드를 생성할 수 없습니다.');
+      Toast.error('라운드를 생성할 수 없습니다.');
     }
   };
 
@@ -173,7 +174,7 @@ export default function GameSettlementScreen() {
               await deleteSettlement(settlementId);
               navigation.goBack();
             } catch (error) {
-              Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+              Toast.error('정산을 삭제할 수 없습니다.');
             } finally {
               setActionInProgress(false);
             }
@@ -204,7 +205,7 @@ export default function GameSettlementScreen() {
               await loadData();
             } catch (error) {
               console.error('라운드 삭제 실패:', error);
-              Alert.alert('오류', '라운드를 삭제할 수 없습니다.');
+              Toast.error('라운드를 삭제할 수 없습니다.');
             }
           },
         },
@@ -234,7 +235,7 @@ export default function GameSettlementScreen() {
       await loadData();
     } catch (error) {
       console.error('참가자 상태 변경 실패:', error);
-      Alert.alert('오류', '참가자 상태를 변경할 수 없습니다.');
+      Toast.error('참가자 상태를 변경할 수 없습니다.');
     }
   };
 
@@ -255,7 +256,7 @@ export default function GameSettlementScreen() {
               await deleteParticipant(settlementId, participantId);
               await loadData();
             } catch (error) {
-              Alert.alert('오류', '참가자를 삭제할 수 없습니다.');
+              Toast.error('참가자를 삭제할 수 없습니다.');
             }
           },
         },
@@ -276,7 +277,7 @@ export default function GameSettlementScreen() {
       await loadData();
     } catch (error) {
       console.error('라운드 엔트리 업데이트 실패:', error);
-      Alert.alert('오류', '라운드 데이터를 저장할 수 없습니다.');
+      Toast.error('라운드 데이터를 저장할 수 없습니다.');
     }
   };
 
@@ -312,7 +313,7 @@ export default function GameSettlementScreen() {
       );
     } catch (error: any) {
       const message = error.response?.data?.message || '초대 코드 생성에 실패했습니다.';
-      Alert.alert('오류', message);
+      Toast.error(message);
     }
   };
 
@@ -335,7 +336,7 @@ export default function GameSettlementScreen() {
                 await updateSettlement(settlementId, { status: SettlementStatus.ACTIVE });
                 await loadData();
               } catch (error) {
-                Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+                Toast.error('정산 상태를 변경할 수 없습니다.');
               } finally {
                 setActionInProgress(false);
               }
@@ -357,7 +358,7 @@ export default function GameSettlementScreen() {
                 await updateSettlement(settlementId, { status: SettlementStatus.COMPLETED });
                 await loadData();
               } catch (error) {
-                Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+                Toast.error('정산 상태를 변경할 수 없습니다.');
               } finally {
                 setActionInProgress(false);
               }
@@ -738,7 +739,7 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
   // 저장 처리
   const handleSave = () => {
     if (winnerIds.size === 0) {
-      Alert.alert('입력 오류', '승리자를 선택해주세요.');
+      Toast.warning('승리자를 선택해주세요.');
       return;
     }
 
@@ -747,12 +748,12 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
       return amount <= 0;
     });
     if (hasInvalidWinner) {
-      Alert.alert('입력 오류', '승리자의 금액을 입력해주세요.');
+      Toast.warning('승리자의 금액을 입력해주세요.');
       return;
     }
 
     if (loserCount === 0) {
-      Alert.alert('입력 오류', '패배자가 최소 1명 이상이어야 합니다.');
+      Toast.warning('패배자가 최소 1명 이상이어야 합니다.');
       return;
     }
 

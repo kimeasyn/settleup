@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { AddParticipantRequest } from '../models/Participant';
+import { Toast } from './ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
@@ -54,12 +54,12 @@ export default function AddParticipantModal({
   const handleSubmit = async () => {
     // 유효성 검증
     if (!name.trim()) {
-      Alert.alert('입력 오류', '참가자 이름을 입력해주세요.');
+      Toast.warning('참가자 이름을 입력해주세요.');
       return;
     }
 
     if (name.trim().length > 50) {
-      Alert.alert('입력 오류', '이름은 최대 50자까지 입력할 수 있습니다.');
+      Toast.warning('이름은 최대 50자까지 입력할 수 있습니다.');
       return;
     }
 
@@ -71,8 +71,6 @@ export default function AddParticipantModal({
       };
 
       await onSubmit(data);
-
-      Alert.alert('완료', '참가자를 추가했습니다.');
       handleClose();
     } catch (error: any) {
       console.error('참가자 추가 실패:', error);
@@ -85,7 +83,7 @@ export default function AddParticipantModal({
         errorMessage = error.message;
       }
 
-      Alert.alert('오류', errorMessage);
+      Toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

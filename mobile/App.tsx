@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { ToastProvider } from './src/components/ToastMessage';
 import { initializeDatabase } from './src/services/storage/database';
 
 /**
@@ -51,11 +52,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" backgroundColor="#FFFFFF" />
-      <AuthProvider>
-        <NavigationContainer>
-          <AppNavigator />
-        </NavigationContainer>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
+        </AuthProvider>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

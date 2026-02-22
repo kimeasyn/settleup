@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { Participant, UpdateParticipantRequest } from '../models/Participant';
+import { Toast } from './ToastMessage';
 
 interface EditParticipantModalProps {
   visible: boolean;
@@ -62,18 +62,18 @@ export default function EditParticipantModal({
   const handleSubmit = async () => {
     // 유효성 검증
     if (!name.trim()) {
-      Alert.alert('입력 오류', '참가자 이름을 입력해주세요.');
+      Toast.warning('참가자 이름을 입력해주세요.');
       return;
     }
 
     if (name.trim().length > 50) {
-      Alert.alert('입력 오류', '이름은 최대 50자까지 입력할 수 있습니다.');
+      Toast.warning('이름은 최대 50자까지 입력할 수 있습니다.');
       return;
     }
 
     // 변경사항 확인
     if (name.trim() === participant.name) {
-      Alert.alert('알림', '변경된 내용이 없습니다.');
+      Toast.info('변경된 내용이 없습니다.');
       return;
     }
 
@@ -85,8 +85,6 @@ export default function EditParticipantModal({
       };
 
       await onSubmit(data);
-
-      Alert.alert('완료', '참가자 정보를 수정했습니다.');
       handleClose();
     } catch (error: any) {
       console.error('참가자 수정 실패:', error);
@@ -99,7 +97,7 @@ export default function EditParticipantModal({
         errorMessage = error.message;
       }
 
-      Alert.alert('오류', errorMessage);
+      Toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

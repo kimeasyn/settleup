@@ -6,10 +6,10 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   TextInput,
 } from 'react-native';
 import { Participant } from '../models/Participant';
+import { Toast } from './ToastMessage';
 
 interface RemainderHandlingModalProps {
   visible: boolean;
@@ -80,13 +80,13 @@ export default function RemainderHandlingModal({
 
   const handleConfirm = () => {
     if (!selectedPayerId) {
-      Alert.alert('오류', '추가 지불자를 선택해주세요.');
+      Toast.warning('추가 지불자를 선택해주세요.');
       return;
     }
 
     const error = getValidationError();
     if (error) {
-      Alert.alert('오류', error);
+      Toast.warning(error);
       return;
     }
 

@@ -7,11 +7,11 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { ExpenseWithDetails, ExpenseSplitRequest, ParticipantSplitRequest } from '../models/Expense';
+import { Toast } from './ToastMessage';
 import { Participant } from '../models/Participant';
 
 interface ExpenseSplitModalProps {
@@ -151,16 +151,13 @@ export default function ExpenseSplitModal({
   const handleSubmit = async () => {
     // 유효성 검사
     if (!validateSplits()) {
-      Alert.alert(
-        '분담 금액 오류',
-        `분담 금액 합계(${formatAmount(getTotalSplitAmount())}원)가 지출 금액(${formatAmount(expense.amount)}원)과 일치하지 않습니다.`
-      );
+      Toast.warning(`분담 금액 합계(${formatAmount(getTotalSplitAmount())}원)가 지출 금액(${formatAmount(expense.amount)}원)과 일치하지 않습니다.`);
       return;
     }
 
     const hasZeroSplit = participantSplits.some(split => split.share < 0);
     if (hasZeroSplit) {
-      Alert.alert('분담 금액 오류', '분담 금액은 0 이상이어야 합니다.');
+      Toast.warning('분담 금액은 0 이상이어야 합니다.');
       return;
     }
 
@@ -173,7 +170,6 @@ export default function ExpenseSplitModal({
       };
 
       await onSubmit(data);
-      Alert.alert('완료', '지출 분담이 설정되었습니다.');
       onClose();
     } catch (error: any) {
       console.error('분담 설정 실패:', error);
@@ -183,7 +179,7 @@ export default function ExpenseSplitModal({
         errorMessage = error.response.data.message;
       }
 
-      Alert.alert('오류', errorMessage);
+      Toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

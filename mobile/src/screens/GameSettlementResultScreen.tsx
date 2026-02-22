@@ -13,6 +13,7 @@ import {
   GameSettlementResult,
   SettlementTransaction,
 } from '../models/GameSettlement';
+import { Toast } from '../components/ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
@@ -51,18 +52,10 @@ export default function GameSettlementResultScreen() {
           onPress: async () => {
             try {
               await updateSettlement(settlementId, { status: SettlementStatus.COMPLETED });
-              Alert.alert(
-                '완료',
-                '게임 정산이 완료되었습니다.',
-                [
-                  {
-                    text: '확인',
-                    onPress: () => navigation.goBack(),
-                  },
-                ]
-              );
+              Toast.success('게임 정산이 완료되었습니다.');
+              navigation.goBack();
             } catch (error) {
-              Alert.alert('오류', '정산 완료 처리에 실패했습니다.');
+              Toast.error('정산 완료 처리에 실패했습니다.');
             }
           },
         },

@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { Participant } from '../models/Participant';
@@ -25,6 +24,7 @@ import {
   deleteExpense,
   setExpenseSplits,
 } from '../services/api/settlementService';
+import { Toast } from '../components/ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
@@ -58,7 +58,7 @@ export default function ExpenseListScreen() {
       setParticipants(participantsData);
     } catch (error) {
       console.error('데이터 로드 실패:', error);
-      Alert.alert('오류', '데이터를 불러올 수 없습니다.');
+      Toast.error('데이터를 불러올 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -101,10 +101,9 @@ export default function ExpenseListScreen() {
     try {
       await deleteExpense(settlementId, expenseId);
       await loadData();
-      Alert.alert('완료', '지출을 삭제했습니다.');
     } catch (error) {
       console.error('지출 삭제 실패:', error);
-      Alert.alert('오류', '지출을 삭제할 수 없습니다.');
+      Toast.error('지출을 삭제할 수 없습니다.');
     }
   };
 
@@ -140,7 +139,7 @@ export default function ExpenseListScreen() {
             style={styles.addButton}
             onPress={() => {
               if (participants.length === 0) {
-                Alert.alert('참가자 없음', '지출을 추가하려면 먼저 참가자를 추가해주세요.');
+                Toast.warning('지출을 추가하려면 먼저 참가자를 추가해주세요.');
                 return;
               }
               setAddModalVisible(true);

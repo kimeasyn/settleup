@@ -9,10 +9,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { Participant } from '../models/Participant';
 import { CreateExpenseRequest, CreateExpenseSplitRequest } from '../models/Expense';
+import { Toast } from './ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
@@ -80,27 +80,27 @@ export default function AddExpenseModal({
     // 유효성 검증
     const amountNum = parseFloat(amount);
     if (!amount || isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('입력 오류', '지출 금액을 올바르게 입력해주세요.');
+      Toast.warning('지출 금액을 올바르게 입력해주세요.');
       return;
     }
 
     if (amountNum > 100000000) {
-      Alert.alert('입력 오류', '금액은 1억 원 이하여야 합니다.');
+      Toast.warning('금액은 1억 원 이하여야 합니다.');
       return;
     }
 
     if (!description.trim()) {
-      Alert.alert('입력 오류', '지출 설명을 입력해주세요.');
+      Toast.warning('지출 설명을 입력해주세요.');
       return;
     }
 
     if (description.trim().length > 200) {
-      Alert.alert('입력 오류', '지출 설명은 최대 200자까지 입력할 수 있습니다.');
+      Toast.warning('지출 설명은 최대 200자까지 입력할 수 있습니다.');
       return;
     }
 
     if (!payerId) {
-      Alert.alert('입력 오류', '지출자를 선택해주세요.');
+      Toast.warning('지출자를 선택해주세요.');
       return;
     }
 
@@ -123,8 +123,6 @@ export default function AddExpenseModal({
       };
 
       await onSubmit(data);
-
-      Alert.alert('완료', '지출을 추가했습니다.');
       handleClose();
     } catch (error: any) {
       console.error('지출 추가 실패:', error);
@@ -136,7 +134,7 @@ export default function AddExpenseModal({
         errorMessage = error.message;
       }
 
-      Alert.alert('오류', errorMessage);
+      Toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

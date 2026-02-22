@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { ExpenseWithDetails, UpdateExpenseRequest } from '../models/Expense';
+import { Toast } from './ToastMessage';
 import { Participant } from '../models/Participant';
 
 interface EditExpenseModalProps {
@@ -106,28 +106,28 @@ export default function EditExpenseModal({
   const handleSubmit = async () => {
     // 유효성 검증
     if (!description.trim()) {
-      Alert.alert('입력 오류', '지출 설명을 입력해주세요.');
+      Toast.warning('지출 설명을 입력해주세요.');
       return;
     }
 
     if (description.trim().length > 200) {
-      Alert.alert('입력 오류', '설명은 최대 200자까지 입력할 수 있습니다.');
+      Toast.warning('설명은 최대 200자까지 입력할 수 있습니다.');
       return;
     }
 
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('입력 오류', '올바른 금액을 입력해주세요.');
+      Toast.warning('올바른 금액을 입력해주세요.');
       return;
     }
 
     if (amountNum > 100000000) {
-      Alert.alert('입력 오류', '금액은 1억 원 이하여야 합니다.');
+      Toast.warning('금액은 1억 원 이하여야 합니다.');
       return;
     }
 
     if (!selectedPayerId) {
-      Alert.alert('입력 오류', '지불자를 선택해주세요.');
+      Toast.warning('지불자를 선택해주세요.');
       return;
     }
 
@@ -143,8 +143,6 @@ export default function EditExpenseModal({
       };
 
       await onSubmit(data);
-
-      Alert.alert('완료', '지출 정보를 수정했습니다.');
       handleClose();
     } catch (error: any) {
       console.error('지출 수정 실패:', error);
@@ -154,7 +152,7 @@ export default function EditExpenseModal({
         errorMessage = error.response.data.message;
       }
 
-      Alert.alert('오류', errorMessage);
+      Toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

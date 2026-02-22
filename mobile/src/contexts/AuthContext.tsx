@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { Platform, Linking, Alert } from 'react-native';
+import { Platform, Linking } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { User, SocialProvider } from '../models/Auth';
 import * as tokenStorage from '../services/auth/tokenStorage';
@@ -102,8 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function processGoogleRedirect(url: string, source: string) {
       const redirectUri = getRedirectUri();
-      Alert.alert('[DEBUG 1]', `source: ${source}\nurl: ${url.substring(0, 80)}...\nredirectUri: ${redirectUri}\nmatch: ${url.startsWith(redirectUri || '')}`);
-
       if (!redirectUri || !url.startsWith(redirectUri)) return;
 
       const queryString = url.split('?')[1];
@@ -114,11 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const error = params.get('error');
 
       if (error) {
-        Alert.alert('Google 인증 에러', `${error}: ${params.get('error_description')}`);
+        console.warn('[Auth] Google OAuth error:', error, params.get('error_description'));
         return;
       }
 
-      Alert.alert('[DEBUG 2]', `code: ${code ? 'YES' : 'NO'}\ncodeVerifier: ${codeVerifierRef.current ? 'YES' : 'NO'}`);
       if (!code || !codeVerifierRef.current) return;
 
       try {
@@ -128,10 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           getGoogleClientId(),
           getRedirectUri(),
         );
-        Alert.alert('[DEBUG 3]', `idToken 교환 성공, 백엔드 호출 시작`);
-
         const response = await authApi.loginWithGoogle(idToken);
-        Alert.alert('[DEBUG 4]', `백엔드 로그인 성공: ${response.userName}`);
 
         await tokenStorage.saveTokens({
           accessToken: response.accessToken,
@@ -147,7 +141,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(loggedInUser);
       } catch (e: any) {
         console.error('[Auth] Google code exchange failed:', e);
-        Alert.alert('Google 로그인 실패', e?.message || JSON.stringify(e));
       } finally {
         codeVerifierRef.current = null;
         isLoggingIn.current = false;
@@ -237,14 +230,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { login: kakaoSdkLogin } = require('@react-native-seoul/kakao-login');
       const result = await kakaoSdkLogin();
-      Alert.alert('[DEBUG Kakao]', `idToken: ${result.idToken ? 'YES (' + result.idToken.substring(0, 20) + '...)' : 'NULL'}\naccessToken: ${result.accessToken ? 'YES' : 'NULL'}\nkeys: ${Object.keys(result).join(', ')}`);
       const token = result.idToken || result.accessToken;
       if (token) {
         try {
           await handleSocialLogin('kakao', token);
         } catch (apiError: any) {
           console.error('[Auth] Kakao backend API failed:', apiError);
-          Alert.alert('카카오 로그인 API 실패', apiError?.message || JSON.stringify(apiError));
           throw apiError;
         }
       }

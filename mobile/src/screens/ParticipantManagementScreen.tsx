@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { Participant } from '../models/Participant';
@@ -21,6 +20,7 @@ import {
   deleteParticipant,
   updateParticipant,
 } from '../services/api/settlementService';
+import { Toast } from '../components/ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
@@ -47,7 +47,7 @@ export default function ParticipantManagementScreen() {
       setParticipants(data);
     } catch (error) {
       console.error('참가자 로드 실패:', error);
-      Alert.alert('오류', '참가자 목록을 불러올 수 없습니다.');
+      Toast.error('참가자 목록을 불러올 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -90,10 +90,9 @@ export default function ParticipantManagementScreen() {
     try {
       await toggleParticipantStatus(settlementId, participantId, isActive);
       await loadParticipants();
-      Alert.alert('완료', isActive ? '참가자를 활성화했습니다.' : '참가자를 비활성화했습니다.');
     } catch (error) {
       console.error('참가자 상태 변경 실패:', error);
-      Alert.alert('오류', '참가자 상태를 변경할 수 없습니다.');
+      Toast.error('참가자 상태를 변경할 수 없습니다.');
     }
   };
 
@@ -101,10 +100,9 @@ export default function ParticipantManagementScreen() {
     try {
       await deleteParticipant(settlementId, participantId);
       await loadParticipants();
-      Alert.alert('완료', '참가자를 삭제했습니다.');
     } catch (error) {
       console.error('참가자 삭제 실패:', error);
-      Alert.alert('오류', '참가자를 삭제할 수 없습니다.\n관련 지출 내역이 있을 수 있습니다.');
+      Toast.error('참가자를 삭제할 수 없습니다. 관련 지출 내역이 있을 수 있습니다.');
     }
   };
 

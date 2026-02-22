@@ -25,6 +25,7 @@ import {
   deleteSettlement,
 } from '../services/api/settlementService';
 import { UpdateSettlementRequest } from '../models/Settlement';
+import { Toast } from '../components/ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
@@ -62,7 +63,7 @@ export default function TravelSettlementScreen() {
       setExpenses(expensesData as ExpenseWithDetails[]);
     } catch (error) {
       console.error('데이터 로드 실패:', error);
-      Alert.alert('오류', '데이터를 불러올 수 없습니다.');
+      Toast.error('데이터를 불러올 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -158,11 +159,11 @@ export default function TravelSettlementScreen() {
             setActionInProgress(true);
             try {
               await deleteSettlement(settlementId);
-              Alert.alert('완료', '정산을 삭제했습니다.');
+              Toast.success('정산을 삭제했습니다.');
               navigation.goBack();
             } catch (error) {
               console.error('정산 삭제 실패:', error);
-              Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+              Toast.error('정산을 삭제할 수 없습니다.');
             } finally {
               setActionInProgress(false);
             }
@@ -188,7 +189,7 @@ export default function TravelSettlementScreen() {
                 await updateSettlement(settlementId, { status: SettlementStatus.ACTIVE });
                 await loadData();
               } catch (error) {
-                Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+                Toast.error('정산 상태를 변경할 수 없습니다.');
               } finally {
                 setActionInProgress(false);
               }
@@ -210,7 +211,7 @@ export default function TravelSettlementScreen() {
                 await updateSettlement(settlementId, { status: SettlementStatus.COMPLETED });
                 await loadData();
               } catch (error) {
-                Alert.alert('오류', '정산 상태를 변경할 수 없습니다.');
+                Toast.error('정산 상태를 변경할 수 없습니다.');
               } finally {
                 setActionInProgress(false);
               }
@@ -224,11 +225,11 @@ export default function TravelSettlementScreen() {
   const handleViewSettlementResult = () => {
     const activeParticipants = participants.filter(p => p.isActive);
     if (activeParticipants.length === 0) {
-      Alert.alert('오류', '활성 참가자가 없습니다.');
+      Toast.warning('활성 참가자가 없습니다.');
       return;
     }
     if (expenses.length === 0) {
-      Alert.alert('오류', '지출 내역이 없습니다.');
+      Toast.warning('지출 내역이 없습니다.');
       return;
     }
     const calculatedRemainder = calculateRemainder();

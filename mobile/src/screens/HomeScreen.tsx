@@ -16,6 +16,7 @@ import { getAllSettlements } from '../services/storage/settlementStorage';
 import { getSettlements, deleteSettlement } from '../services/api/settlementService';
 import AnimatedButton from '../components/AnimatedButton';
 import { useAuth } from '../contexts/AuthContext';
+import { Toast } from '../components/ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing, createShadowStyle } from '../constants/Spacing';
@@ -90,7 +91,7 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('정산 목록 로드 실패:', error);
-      Alert.alert('오류', '정산 목록을 불러올 수 없습니다.');
+      Toast.error('정산 목록을 불러올 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -165,7 +166,7 @@ export default function HomeScreen() {
               await deleteSettlement(settlement.id);
               await loadSettlements();
             } catch (error) {
-              Alert.alert('오류', '정산을 삭제할 수 없습니다.');
+              Toast.error('정산을 삭제할 수 없습니다.');
             }
           },
         },

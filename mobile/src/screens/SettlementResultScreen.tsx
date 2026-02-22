@@ -6,13 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Share,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { SettlementResult, ParticipantSummary, Transfer } from '../models/SettlementResult';
 import { calculateSettlement, getLatestResult } from '../services/api/settlementService';
+import { Toast } from '../components/ToastMessage';
 
 type SettlementResultScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -57,7 +57,7 @@ const SettlementResultScreen = () => {
     } catch (err) {
       console.error('정산 결과 로드 실패:', err);
       setError('정산 결과를 불러올 수 없습니다.');
-      Alert.alert('오류', '정산 결과를 불러올 수 없습니다.');
+      Toast.error('정산 결과를 불러올 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ const SettlementResultScreen = () => {
       });
     } catch (error) {
       console.error('공유 실패:', error);
-      Alert.alert('오류', '공유할 수 없습니다.');
+      Toast.error('공유할 수 없습니다.');
     }
   };
 
