@@ -78,12 +78,13 @@ export default function HomeScreen() {
       setSettlements(localSettlements);
       filterSettlements(localSettlements, selectedType);
 
-      // 백그라운드에서 API 동기화 시도
+      // API에서 정산 목록 조회
       try {
         const apiSettlements = await getSettlements();
-        // API 데이터가 있으면 로컬 저장소 업데이트 (동기화 로직은 나중에 구현)
-        setSettlements(apiSettlements);
-        filterSettlements(apiSettlements, selectedType);
+        if (apiSettlements.length > 0 || localSettlements.length === 0) {
+          setSettlements(apiSettlements);
+          filterSettlements(apiSettlements, selectedType);
+        }
       } catch (apiError) {
         console.log('API 동기화 실패 (오프라인 모드):', apiError);
       }

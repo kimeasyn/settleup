@@ -96,10 +96,15 @@ const CreateSettlementScreen = () => {
         {
           text: '확인',
           onPress: () => {
-            // 정산 상세 화면으로 이동
-            navigation.replace('TravelSettlement', {
-              settlementId: newSettlement.id,
-            });
+            if (newSettlement.type === SettlementType.GAME) {
+              navigation.replace('GameSettlement', {
+                settlementId: newSettlement.id,
+              });
+            } else {
+              navigation.replace('TravelSettlement', {
+                settlementId: newSettlement.id,
+              });
+            }
           },
         },
       ]);
