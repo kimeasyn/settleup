@@ -65,6 +65,10 @@ public class KakaoTokenValidator implements SocialTokenValidator {
             String email = claims.getStringClaim("email");
             String nickname = claims.getStringClaim("nickname");
 
+            if (nickname == null || nickname.isBlank()) {
+                nickname = email != null ? email.split("@")[0] : "카카오사용자";
+            }
+
             return SocialUserInfo.builder()
                     .providerId(userId)
                     .email(email)
