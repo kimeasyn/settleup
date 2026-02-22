@@ -51,8 +51,8 @@ logging:
   level:
     root: INFO
     com.settleup: DEBUG
+    com.settleup.service.social: INFO
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
