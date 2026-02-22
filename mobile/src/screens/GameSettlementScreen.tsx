@@ -283,6 +283,7 @@ export default function GameSettlementScreen() {
     } catch (error) {
       console.error('라운드 엔트리 업데이트 실패:', error);
       Toast.error('라운드 데이터를 저장할 수 없습니다.');
+      throw error;
     }
   };
 
@@ -660,6 +661,8 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set(round.excludedParticipantIds || []));
   const [winnerIds, setWinnerIds] = useState<Set<string>>(new Set());
   const [winnerAmounts, setWinnerAmounts] = useState<{ [participantId: string]: string }>({});
+  const hasSavedEntries = round.entries.length > 0;
+  const [isEditing, setIsEditing] = useState(!hasSavedEntries);
 
   const activeParticipants = participants.filter(p => p.isActive);
   const includedParticipants = activeParticipants.filter(p => !excludedIds.has(p.id));
@@ -741,8 +744,24 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
   const perLoserLoss = loserCount > 0 ? Math.floor(totalWinnings / loserCount) : 0;
   const loserRemainder = loserCount > 0 ? totalWinnings - perLoserLoss * loserCount : 0;
 
+  // 취소 처리 (기존 데이터 복원)
+  const handleCancel = () => {
+    setExcludedIds(new Set(round.excludedParticipantIds || []));
+    const winners = new Set<string>();
+    const amounts: { [id: string]: string } = {};
+    round.entries.forEach(entry => {
+      if (entry.amount > 0) {
+        winners.add(entry.participantId);
+        amounts[entry.participantId] = entry.amount.toString();
+      }
+    });
+    setWinnerIds(winners);
+    setWinnerAmounts(amounts);
+    setIsEditing(false);
+  };
+
   // 저장 처리
-  const handleSave = () => {
+  const handleSave = async () => {
     if (winnerIds.size === 0) {
       Toast.warning('승리자를 선택해주세요.');
       return;
@@ -789,9 +808,70 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
     });
 
     const excludedArray = Array.from(excludedIds);
-    return onUpdateEntries(round.round.id, entries, excludedArray.length > 0 ? excludedArray : undefined);
+    try {
+      await onUpdateEntries(round.round.id, entries, excludedArray.length > 0 ? excludedArray : undefined);
+      setIsEditing(false);
+    } catch {
+      // Error already handled by parent (toast shown)
+    }
   };
 
+  // 요약 모드 (저장된 엔트리가 있고 편집 중이 아닐 때)
+  if (!isEditing) {
+    return (
+      <View style={styles.roundForm}>
+        <View style={styles.roundFormHeader}>
+          <Text style={styles.roundFormTitle}>{round.round.title}</Text>
+          {!disabled && (
+            <TouchableOpacity
+              style={styles.deleteRoundButton}
+              onPress={() => onDeleteRound(round.round.id)}
+            >
+              <Text style={styles.deleteRoundButtonText}>삭제</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* 참가자별 금액 요약 */}
+        {round.entries
+          .slice()
+          .sort((a, b) => b.amount - a.amount)
+          .map(entry => (
+            <View key={entry.participantId} style={styles.entrySummaryRow}>
+              <Text style={styles.entrySummaryName}>{entry.participantName}</Text>
+              <Text style={[
+                styles.entrySummaryAmount,
+                entry.amount > 0 ? styles.positiveAmount : entry.amount < 0 ? styles.negativeAmount : styles.zeroAmount,
+              ]}>
+                {formatGameAmount(entry.amount)}원
+              </Text>
+            </View>
+          ))}
+
+        {/* 불참 참가자 */}
+        {round.excludedParticipantIds && round.excludedParticipantIds.length > 0 && (
+          <Text style={styles.excludedSummaryText}>
+            ({round.excludedParticipantIds
+              .map(id => participants.find(p => p.id === id)?.name)
+              .filter(Boolean)
+              .join(', ')} 불참)
+          </Text>
+        )}
+
+        {/* 수정 버튼 */}
+        {!disabled && (
+          <TouchableOpacity
+            style={styles.editModeButton}
+            onPress={() => setIsEditing(true)}
+          >
+            <Text style={styles.editModeButtonText}>수정</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  // 편집 모드
   return (
     <View style={styles.roundForm}>
       <View style={styles.roundFormHeader}>
@@ -906,16 +986,23 @@ const RoundEntryForm: React.FC<RoundEntryFormProps> = ({
         </View>
       )}
 
-      {/* 저장 버튼 */}
+      {/* 저장/취소 버튼 */}
       {!disabled && (
-        <AnimatedButton
-          title="저장"
-          onPress={handleSave}
-          variant={totalWinnings > 0 && loserCount > 0 ? "success" : "secondary"}
-          size="medium"
-          feedbackType="pulse"
-          style={styles.saveButton}
-        />
+        <View style={styles.editFormActions}>
+          <AnimatedButton
+            title="저장"
+            onPress={handleSave}
+            variant={totalWinnings > 0 && loserCount > 0 ? "success" : "secondary"}
+            size="medium"
+            feedbackType="pulse"
+            style={styles.saveButton}
+          />
+          {hasSavedEntries && (
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+              <Text style={styles.cancelButtonText}>취소</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </View>
   );
@@ -1372,5 +1459,54 @@ const styles = StyleSheet.create({
   },
   disabledAction: {
     opacity: 0.5,
+  },
+  // 요약 뷰 스타일
+  entrySummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  entrySummaryName: {
+    ...Typography.styles.body1,
+    color: Colors.text.primary,
+  },
+  entrySummaryAmount: {
+    ...Typography.styles.body1,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  excludedSummaryText: {
+    ...Typography.styles.caption,
+    color: Colors.text.disabled,
+    marginTop: Spacing.spacing.sm,
+    fontStyle: 'italic',
+  },
+  editModeButton: {
+    marginTop: Spacing.spacing.lg,
+    paddingVertical: Spacing.spacing.md,
+    backgroundColor: Colors.primary.main,
+    borderRadius: Spacing.radius.md,
+    alignItems: 'center',
+  },
+  editModeButtonText: {
+    ...Typography.styles.button,
+    color: Colors.text.inverse,
+  },
+  editFormActions: {
+    marginTop: Spacing.spacing.lg,
+    gap: Spacing.spacing.sm,
+  },
+  cancelButton: {
+    paddingVertical: Spacing.spacing.md,
+    borderRadius: Spacing.radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    ...Typography.styles.button,
+    color: Colors.text.secondary,
   },
 });

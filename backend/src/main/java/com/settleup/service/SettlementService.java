@@ -22,7 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import com.settleup.domain.settlement.SettlementType;
@@ -100,9 +102,38 @@ public class SettlementService {
             return List.of();
         }
 
-        return settlementRepository.findByUserAccess(userId).stream()
-                .map(SettlementResponse::from)
-                .collect(Collectors.toList());
+        List<Settlement> settlements = settlementRepository.findByUserAccess(userId);
+        if (settlements.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> ids = settlements.stream().map(Settlement::getId).toList();
+
+        Map<UUID, BigDecimal> expenseMap = expenseRepository.sumAmountBySettlementIds(ids)
+                .stream().collect(Collectors.toMap(
+                        r -> (UUID) r[0],
+                        r -> (BigDecimal) r[1]
+                ));
+
+        Map<UUID, Long> participantMap = participantRepository.countActiveBySettlementIds(ids)
+                .stream().collect(Collectors.toMap(
+                        r -> (UUID) r[0],
+                        r -> (Long) r[1]
+                ));
+
+        Map<UUID, Long> roundMap = gameRoundRepository.countBySettlementIds(ids)
+                .stream().collect(Collectors.toMap(
+                        r -> (UUID) r[0],
+                        r -> (Long) r[1]
+                ));
+
+        return settlements.stream().map(s -> {
+            SettlementResponse resp = SettlementResponse.from(s);
+            resp.setTotalExpense(expenseMap.getOrDefault(s.getId(), BigDecimal.ZERO));
+            resp.setParticipantCount(participantMap.getOrDefault(s.getId(), 0L).intValue());
+            resp.setRoundCount(roundMap.getOrDefault(s.getId(), 0L).intValue());
+            return resp;
+        }).toList();
     }
 
     /**

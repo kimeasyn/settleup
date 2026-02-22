@@ -16,10 +16,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -71,6 +75,11 @@ class SettlementControllerTest {
                 .endDate(LocalDate.of(2025, 1, 17))
                 .build();
         settlement = settlementRepository.save(settlement);
+
+        // SecurityContext에 테스트 유저 인증 설정
+        var auth = new UsernamePasswordAuthenticationToken(
+                testUser.getId(), "", List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @Test
@@ -303,5 +312,72 @@ class SettlementControllerTest {
         mockMvc.perform(delete("/settlements/{id}", nonExistentId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("GET /settlements/search - 검색어로 조회 성공")
+    void searchSettlements_ByQuery_Success() throws Exception {
+        // given - 검색용 추가 정산 생성
+        Settlement settlement2 = Settlement.builder()
+                .title("제주도 가족여행")
+                .description("여름 휴가")
+                .type(SettlementType.TRAVEL)
+                .status(SettlementStatus.ACTIVE)
+                .creatorId(testUser.getId())
+                .currency("KRW")
+                .build();
+        settlementRepository.save(settlement2);
+
+        Settlement settlement3 = Settlement.builder()
+                .title("서울 게임모임")
+                .type(SettlementType.GAME)
+                .status(SettlementStatus.ACTIVE)
+                .creatorId(testUser.getId())
+                .currency("KRW")
+                .build();
+        settlementRepository.save(settlement3);
+
+        // when & then - "제주" 검색
+        mockMvc.perform(get("/settlements/search")
+                        .param("query", "제주")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.number").value(0));
+    }
+
+    @Test
+    @DisplayName("GET /settlements/search - 타입 필터 조회 성공")
+    void searchSettlements_ByType_Success() throws Exception {
+        // given - 게임 정산 추가
+        Settlement gameSettlement = Settlement.builder()
+                .title("보드게임 정산")
+                .type(SettlementType.GAME)
+                .status(SettlementStatus.ACTIVE)
+                .creatorId(testUser.getId())
+                .currency("KRW")
+                .build();
+        settlementRepository.save(gameSettlement);
+
+        // when & then - GAME 타입 필터
+        mockMvc.perform(get("/settlements/search")
+                        .param("type", "GAME")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[*].type", everyItem(is("GAME"))));
+    }
+
+    @Test
+    @DisplayName("GET /settlements/search - 결과 없음")
+    void searchSettlements_NoResults() throws Exception {
+        // when & then - 존재하지 않는 검색어
+        mockMvc.perform(get("/settlements/search")
+                        .param("query", "존재하지않는정산명XYZ")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(0)))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 }

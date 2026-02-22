@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +60,14 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
      * 특정 정산의 총 지출 건수 조회
      */
     long countBySettlementId(UUID settlementId);
+
+    /**
+     * 정산별 지출 합계 배치 조회
+     */
+    @Query("SELECT e.settlement.id, COALESCE(SUM(e.amount), 0) " +
+           "FROM Expense e WHERE e.settlement.id IN :settlementIds " +
+           "GROUP BY e.settlement.id")
+    List<Object[]> sumAmountBySettlementIds(@Param("settlementIds") List<UUID> settlementIds);
 
     /**
      * 특정 정산 삭제 시 관련 지출도 삭제 (Cascade)

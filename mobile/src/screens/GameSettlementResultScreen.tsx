@@ -5,6 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Share,
+  TouchableOpacity,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,6 +38,53 @@ export default function GameSettlementResultScreen() {
   const { settlementId, gameResult } = route.params as {
     settlementId: string;
     gameResult: GameSettlementResult;
+  };
+
+  const formatter = new Intl.NumberFormat('ko-KR');
+
+  /**
+   * 공유 텍스트 생성
+   */
+  const generateShareText = (): string => {
+    const { gameStats, finalBalances, settlements } = gameResult;
+
+    let text = `🎮 게임 정산 결과\n\n`;
+
+    text += `📊 게임 통계\n`;
+    text += `- 총 ${gameStats.totalRounds}라운드\n`;
+    text += `- 총 거래액: ${formatter.format(gameStats.totalAmount)}원\n\n`;
+
+    text += `🏆 최종 수익/손실:\n`;
+    [...finalBalances]
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+      .forEach(balance => {
+        const sign = balance.totalAmount >= 0 ? '+' : '';
+        text += `- ${balance.participantName}: ${sign}${formatter.format(balance.totalAmount)}원 (승 ${balance.winCount}회 / 패 ${balance.loseCount}회)\n`;
+      });
+
+    text += `\n`;
+
+    if (settlements.length > 0) {
+      text += `💸 정산 내역:\n`;
+      settlements.forEach((t, index) => {
+        text += `${index + 1}. ${t.fromParticipantName} → ${t.toParticipantName}: ${formatter.format(t.amount)}원\n`;
+      });
+    } else {
+      text += `✅ 모든 참가자가 동점! 정산할 금액이 없습니다.\n`;
+    }
+
+    return text;
+  };
+
+  /**
+   * 공유 핸들러
+   */
+  const handleShare = async () => {
+    try {
+      await Share.share({ message: generateShareText() });
+    } catch (error) {
+      Toast.error('공유할 수 없습니다.');
+    }
   };
 
   /**
@@ -232,6 +281,11 @@ export default function GameSettlementResultScreen() {
         {/* 정산 거래 */}
         {renderSettlementTransactions()}
       </ScrollView>
+
+      {/* 공유 버튼 */}
+      <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+        <Text style={styles.shareButtonText}>정산 결과 공유하기</Text>
+      </TouchableOpacity>
 
       {/* 액션 버튼 */}
       <View style={styles.actionButtons}>
@@ -457,6 +511,19 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.md,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.text.primary,
+  },
+  shareButton: {
+    marginHorizontal: Spacing.spacing.lg,
+    marginBottom: Spacing.spacing.md,
+    backgroundColor: Colors.primary.main,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.spacing.lg,
+    alignItems: 'center',
+  },
+  shareButtonText: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.semibold,
+    color: '#FFFFFF',
   },
   actionButtons: {
     flexDirection: 'row',

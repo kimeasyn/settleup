@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -33,6 +34,11 @@ public class SettlementResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Integer version;
+
+    // 요약 정보 (목록 조회 시)
+    private BigDecimal totalExpense;
+    private Integer participantCount;
+    private Integer roundCount;
 
     /**
      * Entity -> DTO 변환

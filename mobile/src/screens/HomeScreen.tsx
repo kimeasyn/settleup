@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Settlement, SettlementStatus, SettlementType } from '../models/Settlement';
 import { getAllSettlements } from '../services/storage/settlementStorage';
-import { getSettlements, deleteSettlement } from '../services/api/settlementService';
+import { getSettlements, deleteSettlement, searchSettlements } from '../services/api/settlementService';
 import AnimatedButton from '../components/AnimatedButton';
 import { useAuth } from '../contexts/AuthContext';
 import { Toast } from '../components/ToastMessage';
@@ -66,6 +67,9 @@ export default function HomeScreen() {
   const [selectedType, setSelectedType] = useState<SettlementType | 'ALL'>('ALL');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Settlement[] | null>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * 정산 목록 로드 (로컬 저장소 우선)
@@ -131,7 +135,56 @@ export default function HomeScreen() {
    */
   const handleTypeFilter = (type: SettlementType | 'ALL') => {
     setSelectedType(type);
-    filterSettlements(settlements, type);
+    if (searchQuery.trim()) {
+      performSearch(searchQuery, type);
+    } else {
+      filterSettlements(settlements, type);
+      setSearchResults(null);
+    }
+  };
+
+  /**
+   * 검색 실행
+   */
+  const performSearch = async (query: string, type: SettlementType | 'ALL' = selectedType) => {
+    try {
+      const result = await searchSettlements(
+        query,
+        undefined,
+        type !== 'ALL' ? type : undefined
+      );
+      setSearchResults(result.content);
+    } catch (error) {
+      console.log('검색 실패:', error);
+    }
+  };
+
+  /**
+   * 검색어 변경 (300ms 디바운스)
+   */
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    if (!text.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    searchTimerRef.current = setTimeout(() => {
+      performSearch(text);
+    }, 300);
+  };
+
+  /**
+   * 검색어 클리어
+   */
+  const handleSearchClear = () => {
+    setSearchQuery('');
+    setSearchResults(null);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
   };
 
   /**
@@ -261,6 +314,26 @@ export default function HomeScreen() {
         </Text>
       )}
 
+      {(item.totalExpense != null || item.participantCount != null) && (
+        <View style={styles.summaryRow}>
+          {item.type === SettlementType.TRAVEL && item.totalExpense != null && (
+            <Text style={styles.summaryText}>
+              총 {new Intl.NumberFormat('ko-KR').format(item.totalExpense)}원
+            </Text>
+          )}
+          {item.type === SettlementType.GAME && item.roundCount != null && (
+            <Text style={styles.summaryText}>
+              {item.roundCount}라운드
+            </Text>
+          )}
+          {item.participantCount != null && item.participantCount > 0 && (
+            <Text style={styles.summaryParticipants}>
+              {item.participantCount}명
+            </Text>
+          )}
+        </View>
+      )}
+
       <View style={styles.cardFooter}>
         <Text style={styles.dateText}>
           {item.startDate && new Date(item.startDate).toLocaleDateString('ko-KR')}
@@ -350,6 +423,12 @@ export default function HomeScreen() {
                 <Text style={styles.menuUserEmail}>{user.email}</Text>
               </View>
             )}
+            <TouchableOpacity style={styles.menuItem} onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('JoinSettlement');
+            }}>
+              <Text style={styles.menuItemText}>초대 코드 입력</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
               <Text style={styles.menuItemTextDestructive}>로그아웃</Text>
             </TouchableOpacity>
@@ -357,9 +436,34 @@ export default function HomeScreen() {
         </>
       )}
 
+      {/* 검색바 */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputWrapper}>
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color={Colors.text.hint}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="정산 검색..."
+            placeholderTextColor={Colors.text.hint}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={handleSearchClear} style={styles.searchClear}>
+              <MaterialCommunityIcons name="close-circle" size={18} color={Colors.text.hint} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {/* 정산 목록 */}
       <FlatList
-        data={filteredSettlements}
+        data={searchResults !== null ? searchResults : filteredSettlements}
         renderItem={renderSettlementItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
@@ -451,6 +555,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.spacing.lg,
     paddingVertical: Spacing.spacing.lg,
   },
+  menuItemText: {
+    fontSize: Typography.fontSize.md,
+    color: Colors.text.primary,
+  },
   menuItemTextDestructive: {
     fontSize: Typography.fontSize.md,
     color: Colors.status.error,
@@ -471,6 +579,32 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: Colors.primary.contrast,
+  },
+  searchContainer: {
+    paddingHorizontal: Spacing.spacing.lg,
+    paddingVertical: Spacing.spacing.sm,
+    backgroundColor: Colors.background.paper,
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.default,
+    borderRadius: Spacing.radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    paddingHorizontal: Spacing.spacing.md,
+  },
+  searchIcon: {
+    marginRight: Spacing.spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: Typography.fontSize.md,
+    color: Colors.text.primary,
+    paddingVertical: Spacing.spacing.sm,
+  },
+  searchClear: {
+    padding: Spacing.spacing.xs,
   },
   listContainer: {
     padding: Spacing.spacing.lg,
@@ -526,6 +660,21 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginBottom: Spacing.spacing.md,
     lineHeight: 20,
+  },
+  summaryRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing.spacing.sm,
+    marginBottom: Spacing.spacing.md,
+  },
+  summaryText: {
+    ...Typography.styles.body2,
+    color: Colors.primary.main,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  summaryParticipants: {
+    ...Typography.styles.body2,
+    color: Colors.text.secondary,
   },
   cardFooter: {
     flexDirection: 'row',

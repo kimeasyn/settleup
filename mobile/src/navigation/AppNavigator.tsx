@@ -12,6 +12,7 @@ import SettlementResultScreen from '../screens/SettlementResultScreen';
 import SettlementHistoryScreen from '../screens/SettlementHistoryScreen';
 import GameSettlementScreen from '../screens/GameSettlementScreen';
 import GameSettlementResultScreen from '../screens/GameSettlementResultScreen';
+import JoinSettlementScreen from '../screens/JoinSettlementScreen';
 import LoginScreen from '../screens/LoginScreen';
 import { ScreenTransitions } from '../constants/Animations';
 import { Colors } from '../constants/Colors';
@@ -33,6 +34,7 @@ export type RootStackParamList = {
   SettlementResult: { settlementId: string; remainderPayerId?: string; remainderAmount?: number };
   GameSettlement: { settlementId: string };
   GameSettlementResult: { settlementId: string; gameResult: any };
+  JoinSettlement: undefined;
 };
 
 export type AuthStackParamList = {
@@ -124,6 +126,14 @@ const HomeStack = () => (
       component={GameSettlementResultScreen}
       options={{
         title: '게임 정산 결과',
+      }}
+    />
+    <Stack.Screen
+      name="JoinSettlement"
+      component={JoinSettlementScreen}
+      options={{
+        title: '초대 코드 입력',
+        ...ScreenTransitions.slideFromBottom,
       }}
     />
   </Stack.Navigator>

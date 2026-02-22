@@ -56,6 +56,15 @@ export interface Settlement {
 
   /** 수정 일시 (ISO 8601: YYYY-MM-DDTHH:mm:ss) */
   updatedAt: string;
+
+  /** 총 지출액 (요약) */
+  totalExpense?: number;
+
+  /** 활성 참가자 수 (요약) */
+  participantCount?: number;
+
+  /** 게임 라운드 수 (요약) */
+  roundCount?: number;
 }
 
 /**

@@ -2,6 +2,8 @@ package com.settleup.repository;
 
 import com.settleup.domain.participant.Participant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -49,6 +51,14 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * 정산의 활성 참가자 수 조회
      */
     long countBySettlementIdAndIsActive(UUID settlementId, Boolean isActive);
+
+    /**
+     * 정산별 활성 참가자 수 배치 조회
+     */
+    @Query("SELECT p.settlementId, COUNT(p) " +
+           "FROM Participant p WHERE p.settlementId IN :settlementIds AND p.isActive = true " +
+           "GROUP BY p.settlementId")
+    List<Object[]> countActiveBySettlementIds(@Param("settlementIds") List<UUID> settlementIds);
 
     /**
      * 정산 삭제 시 관련 참가자도 삭제 (Cascade)

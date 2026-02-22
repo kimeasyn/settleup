@@ -447,7 +447,28 @@ export const generateInviteCode = async (
 };
 
 /**
- * 초대 코드로 참가
+ * 초대 코드로 정산 참가 (코드만으로)
+ */
+export const joinByCode = async (
+  code: string
+): Promise<{
+  id: string;
+  settlementId: string;
+  role: string;
+  settlementTitle: string;
+  settlementType: string;
+}> => {
+  try {
+    const response = await apiClient.post('/invites/join', { code });
+    return response.data;
+  } catch (error) {
+    console.error('[joinByCode] Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * 초대 코드로 참가 (settlementId 필요 - 하위호환)
  */
 export const joinByInviteCode = async (
   settlementId: string,
@@ -488,6 +509,7 @@ export const SettlementService = {
   getSettlementMembers,
   generateInviteCode,
   joinByInviteCode,
+  joinByCode,
 };
 
 export default SettlementService;

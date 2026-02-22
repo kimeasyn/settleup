@@ -48,6 +48,7 @@ public class SecurityConfig {
                 // 기존 API들 - 인증 적용 (Bearer 토큰 또는 Dev 헤더)
                 // permitAll로 두되 컨트롤러에서 @AuthenticationPrincipal로 옵셔널 인증 처리
                 .requestMatchers("/settlements/**").permitAll()
+                .requestMatchers("/invites/**").permitAll()
                 .requestMatchers("/game-rounds/**").permitAll()
 
                 // 모든 나머지 요청은 인증 필요
