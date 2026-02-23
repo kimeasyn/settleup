@@ -44,12 +44,12 @@ public class SecurityConfig {
 
                 // Health check endpoints
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/settlements/health").permitAll()
 
-                // 기존 API들 - 인증 적용 (Bearer 토큰 또는 Dev 헤더)
-                // permitAll로 두되 컨트롤러에서 @AuthenticationPrincipal로 옵셔널 인증 처리
-                .requestMatchers("/settlements/**").permitAll()
-                .requestMatchers("/invites/**").permitAll()
-                .requestMatchers("/game-rounds/**").permitAll()
+                // 인증 필요 API - 만료 토큰 시 401 반환 → 클라이언트 토큰 갱신 트리거
+                .requestMatchers("/settlements/**").authenticated()
+                .requestMatchers("/invites/**").authenticated()
+                .requestMatchers("/game-rounds/**").authenticated()
 
                 // 모든 나머지 요청은 인증 필요
                 .anyRequest().authenticated()

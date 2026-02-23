@@ -17,9 +17,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -62,6 +66,11 @@ class ParticipantControllerTest {
                 .email("test-participant@example.com")
                 .build();
         testUser = userRepository.save(testUser);
+
+        // SecurityContext에 테스트 유저 인증 설정
+        var auth = new UsernamePasswordAuthenticationToken(
+                testUser.getId(), "", List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
 
         // 테스트 정산 생성
         settlement = Settlement.builder()
