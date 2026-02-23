@@ -16,7 +16,10 @@
 # 최소 2개 AZ의 서브넷 필요 (AWS 규칙)
 resource "aws_db_subnet_group" "main" {
   name = "${var.app_name}-db-subnet"
-  subnet_ids = [
+  subnet_ids = var.rds_publicly_accessible ? [
+    aws_subnet.public_a.id,
+    aws_subnet.public_b.id,
+  ] : [
     aws_subnet.private_a.id,
     aws_subnet.private_b.id,
   ]
@@ -54,9 +57,8 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  # ⚠️ 중요: Public 접근 비활성화
-  # Private Subnet에 있으므로 ECS에서만 접근 가능
-  publicly_accessible = false
+  # Public 접근 설정 (로컬 IDE 접속 시 true로 변경)
+  publicly_accessible = var.rds_publicly_accessible
 
   # 백업 설정
   backup_retention_period = 7           # 7일간 자동 백업 보관

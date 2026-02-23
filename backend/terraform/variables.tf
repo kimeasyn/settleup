@@ -58,6 +58,20 @@ variable "db_password" {
   sensitive   = true # terraform plan 출력에서 마스킹됨
 }
 
+# --- RDS 로컬 접속 (DataGrip 등) ---
+
+variable "rds_publicly_accessible" {
+  description = "RDS 퍼블릭 접근 허용 여부 (로컬 IDE 접속 시 true)"
+  type        = bool
+  default     = false
+}
+
+variable "my_ip" {
+  description = "로컬 접속 허용 IP (예: 1.2.3.4/32). 빈 문자열이면 규칙 미생성"
+  type        = string
+  default     = ""
+}
+
 # --- JWT ---
 
 variable "jwt_secret" {

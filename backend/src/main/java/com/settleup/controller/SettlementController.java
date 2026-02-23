@@ -79,15 +79,12 @@ public class SettlementController {
 
         log.info("POST /settlements - Creating settlement: {}", request.getTitle());
 
-        // 인증된 사용자 ID 사용 (미인증 시 기본값)
-        UUID creatorId = userId != null ? userId : UUID.fromString("00000000-0000-0000-0000-000000000001");
-
-        SettlementResponse response = settlementService.createSettlement(request, creatorId);
-
-        // OWNER 멤버 자동 생성
-        if (userId != null) {
-            settlementMemberService.createOwnerMember(response.getId(), userId);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
+        SettlementResponse response = settlementService.createSettlement(request, userId);
+        settlementMemberService.createOwnerMember(response.getId(), userId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

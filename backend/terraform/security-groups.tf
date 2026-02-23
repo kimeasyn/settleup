@@ -102,6 +102,18 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.ecs.id] # ECS SG에서만!
   }
 
+  # 로컬 IDE (DataGrip 등) 접속용 - my_ip가 설정된 경우에만 활성화
+  dynamic "ingress" {
+    for_each = var.my_ip != "" ? [1] : []
+    content {
+      description = "PostgreSQL from local (temporary)"
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      cidr_blocks = [var.my_ip]
+    }
+  }
+
   # RDS는 아웃바운드 불필요 (요청을 받기만 함)
   # 하지만 응답을 보내려면 egress가 필요
   egress {
