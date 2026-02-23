@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { Platform, Linking } from 'react-native';
+import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
 import { User, SocialProvider } from '../models/Auth';
 import * as tokenStorage from '../services/auth/tokenStorage';
 import * as authApi from '../services/auth/authApi';
@@ -54,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const codeVerifierRef = useRef<string | null>(null);
   const isLoggingIn = useRef(false);
 
   // 앱 시작 시 저장된 토큰으로 복원
@@ -96,68 +96,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     restoreSession();
-  }, []);
-
-  // Google OAuth 딥링크 콜백
-  useEffect(() => {
-    async function processGoogleRedirect(url: string, source: string) {
-      const redirectUri = getRedirectUri();
-      if (!redirectUri || !url.startsWith(redirectUri)) return;
-
-      const queryString = url.split('?')[1];
-      if (!queryString) return;
-
-      const params = new URLSearchParams(queryString);
-      const code = params.get('code');
-      const error = params.get('error');
-
-      if (error) {
-        console.warn('[Auth] Google OAuth error:', error, params.get('error_description'));
-        return;
-      }
-
-      if (!code || !codeVerifierRef.current) return;
-
-      try {
-        const idToken = await authApi.exchangeGoogleCode(
-          code,
-          codeVerifierRef.current,
-          getGoogleClientId(),
-          getRedirectUri(),
-        );
-        const response = await authApi.loginWithGoogle(idToken);
-
-        await tokenStorage.saveTokens({
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
-          accessTokenExpiresIn: response.accessTokenExpiresIn,
-        });
-        const loggedInUser: User = {
-          id: response.userId,
-          name: response.userName,
-          email: response.userEmail,
-        };
-        await tokenStorage.saveUser(loggedInUser);
-        setUser(loggedInUser);
-      } catch (e: any) {
-        console.error('[Auth] Google code exchange failed:', e);
-      } finally {
-        codeVerifierRef.current = null;
-        isLoggingIn.current = false;
-      }
-    }
-
-    // 앱이 실행 중일 때 딥링크 수신
-    const subscription = Linking.addEventListener('url', (event) => {
-      processGoogleRedirect(event.url, 'addEventListener');
-    });
-
-    // Cold start: 앱이 딥링크로 새로 실행된 경우
-    Linking.getInitialURL().then((url) => {
-      if (url) processGoogleRedirect(url, 'getInitialURL');
-    });
-
-    return () => subscription.remove();
   }, []);
 
   // 전역 인증 만료 이벤트 감지
@@ -202,7 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const codeVerifier = generateCodeVerifier();
       const codeChallenge = await generateCodeChallenge(codeVerifier);
-      codeVerifierRef.current = codeVerifier;
 
       const params = new URLSearchParams({
         client_id: googleClientId,
@@ -215,10 +152,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-      await Linking.openURL(authUrl);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, getRedirectUri());
+
+      if (result.type === 'success' && result.url) {
+        const queryString = result.url.split('?')[1];
+        if (queryString) {
+          const urlParams = new URLSearchParams(queryString);
+          const code = urlParams.get('code');
+          if (code) {
+            const idToken = await authApi.exchangeGoogleCode(
+              code,
+              codeVerifier,
+              googleClientId,
+              getRedirectUri(),
+            );
+            await handleSocialLogin('google', idToken);
+          }
+        }
+      }
     } catch (e) {
-      isLoggingIn.current = false;
       throw e;
+    } finally {
+      isLoggingIn.current = false;
     }
   }, []);
 
