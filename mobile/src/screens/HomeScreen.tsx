@@ -158,7 +158,7 @@ export default function HomeScreen() {
       );
       setSearchResults(result.content);
     } catch (error) {
-      console.log('검색 실패:', error);
+      setSearchResults([]);
     }
   };
 
