@@ -343,6 +343,32 @@ class SettlementServiceTest {
     }
 
     @Test
+    @DisplayName("정산 검색 - 검색어 + 타입 필터 조합 성공")
+    void searchSettlements_ByQueryAndType_Success() {
+        // given
+        String query = "제주도";
+        SettlementType type = SettlementType.TRAVEL;
+        Pageable pageable = PageRequest.of(0, 20);
+
+        List<Settlement> settlements = Arrays.asList(settlement);
+        Page<Settlement> settlementPage = new PageImpl<>(settlements, pageable, 1);
+
+        when(settlementRepository.findByUserAccessAndQueryAndType(eq(creatorId), eq(query), eq(type), any(Pageable.class)))
+                .thenReturn(settlementPage);
+
+        // when
+        Page<SettlementResponse> result = settlementService.searchSettlements(creatorId, query, null, type, 0, 20);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getTitle()).contains("제주도");
+        assertThat(result.getContent().get(0).getType()).isEqualTo(SettlementType.TRAVEL);
+
+        verify(settlementRepository, times(1))
+                .findByUserAccessAndQueryAndType(eq(creatorId), eq(query), eq(type), any(Pageable.class));
+    }
+
+    @Test
     @DisplayName("정산 검색 - 상태 필터링 성공")
     void searchSettlements_ByStatus_Success() {
         // given

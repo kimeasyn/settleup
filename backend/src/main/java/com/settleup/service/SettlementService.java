@@ -157,7 +157,9 @@ public class SettlementService {
             return Page.empty(pageable);
         }
 
-        if (query != null && !query.trim().isEmpty()) {
+        if (query != null && !query.trim().isEmpty() && type != null) {
+            settlements = settlementRepository.findByUserAccessAndQueryAndType(userId, query, type, pageable);
+        } else if (query != null && !query.trim().isEmpty()) {
             settlements = settlementRepository.findByUserAccessAndQuery(userId, query, pageable);
         } else if (status != null && type != null) {
             settlements = settlementRepository.findByUserAccessAndStatusAndType(userId, status, type, pageable);

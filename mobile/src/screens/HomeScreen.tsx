@@ -135,6 +135,9 @@ export default function HomeScreen() {
    */
   const handleTypeFilter = (type: SettlementType | 'ALL') => {
     setSelectedType(type);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
     if (searchQuery.trim()) {
       performSearch(searchQuery, type);
     } else {

@@ -96,6 +96,16 @@ public interface SettlementRepository extends JpaRepository<Settlement, UUID> {
     Page<Settlement> findByUserAccessAndQuery(@Param("userId") UUID userId, @Param("query") String query, Pageable pageable);
 
     /**
+     * 사용자별 정산 검색 + 타입 필터 (페이징)
+     */
+    @Query("SELECT DISTINCT s FROM Settlement s LEFT JOIN SettlementMember sm ON s.id = sm.settlementId " +
+           "WHERE (s.creatorId = :userId OR sm.userId = :userId) " +
+           "AND s.type = :type " +
+           "AND (LOWER(s.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(s.description) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+           "ORDER BY s.updatedAt DESC")
+    Page<Settlement> findByUserAccessAndQueryAndType(@Param("userId") UUID userId, @Param("query") String query, @Param("type") SettlementType type, Pageable pageable);
+
+    /**
      * 사용자별 정산 필터링 - 상태 (페이징)
      */
     @Query("SELECT DISTINCT s FROM Settlement s LEFT JOIN SettlementMember sm ON s.id = sm.settlementId " +
