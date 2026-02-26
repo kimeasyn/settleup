@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -43,17 +43,43 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLogoTap = useCallback(() => {
+    if (!__DEV__) return;
+
+    tapCountRef.current += 1;
+
+    if (tapCountRef.current >= 2) {
+      tapCountRef.current = 0;
+      if (tapTimerRef.current) {
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+      }
+      handleLogin('dev');
+      return;
+    }
+
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+      tapTimerRef.current = null;
+    }, 1000);
+  }, []);
+
   const handleLogin = async (provider: SocialProvider) => {
     setError(null);
     setIsLoading(true);
     try {
       await login(provider);
     } catch (e: any) {
-      const message =
-        provider === 'google'
-          ? 'Google 로그인에 실패했습니다. 다시 시도해주세요.'
-          : '카카오 로그인에 실패했습니다. 다시 시도해주세요.';
-      setError(message);
+      const messages: Record<string, string> = {
+        google: 'Google 로그인에 실패했습니다. 다시 시도해주세요.',
+        kakao: '카카오 로그인에 실패했습니다. 다시 시도해주세요.',
+        dev: '개발 로그인에 실패했습니다. 서버 연결을 확인해주세요.',
+      };
+      setError(messages[provider] ?? '로그인에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -63,9 +89,11 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.container}>
       {/* 상단 로고 영역 */}
       <View style={styles.headerArea}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>S</Text>
-        </View>
+        <TouchableOpacity onPress={handleLogoTap} activeOpacity={0.8}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>S</Text>
+          </View>
+        </TouchableOpacity>
         <Text style={styles.appName}>SettleUp</Text>
         <Text style={styles.tagline}>친구들과 간편하게 정산하세요</Text>
         <Text style={styles.description}>

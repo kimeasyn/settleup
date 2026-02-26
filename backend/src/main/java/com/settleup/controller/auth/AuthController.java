@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,19 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService authService;
+    private final Environment environment;
+
+    @PostMapping("/dev-login")
+    @Operation(summary = "개발용 간편 로그인", description = "local/dev 환경 전용 테스트 로그인")
+    public ResponseEntity<TokenResponse> devLogin() {
+        boolean isDevProfile = java.util.Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equals("local") || p.equals("dev"));
+        if (!isDevProfile) {
+            return ResponseEntity.notFound().build();
+        }
+        TokenResponse response = authService.devLogin();
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/login/google")
     @Operation(summary = "Google 소셜 로그인", description = "Google ID Token으로 로그인")

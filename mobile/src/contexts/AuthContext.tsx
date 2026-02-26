@@ -177,6 +177,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loginWithDev = useCallback(async () => {
+    if (isLoggingIn.current) return;
+    isLoggingIn.current = true;
+
+    try {
+      const response = await authApi.devLogin();
+
+      await tokenStorage.saveTokens({
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        accessTokenExpiresIn: response.accessTokenExpiresIn,
+      });
+
+      const loggedInUser: User = {
+        id: response.userId,
+        name: response.userName,
+        email: response.userEmail,
+      };
+      await tokenStorage.saveUser(loggedInUser);
+      setUser(loggedInUser);
+    } catch (e) {
+      throw e;
+    } finally {
+      isLoggingIn.current = false;
+    }
+  }, []);
+
   const loginWithKakao = useCallback(async () => {
     if (isExpoGo) {
       throw new Error('카카오 로그인은 개발 빌드에서만 사용 가능합니다.');
@@ -202,13 +229,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (provider: SocialProvider) => {
-      if (provider === 'google') {
+      if (provider === 'dev') {
+        await loginWithDev();
+      } else if (provider === 'google') {
         await loginWithGoogle();
       } else {
         await loginWithKakao();
       }
     },
-    [loginWithGoogle, loginWithKakao],
+    [loginWithDev, loginWithGoogle, loginWithKakao],
   );
 
   const logout = useCallback(async () => {

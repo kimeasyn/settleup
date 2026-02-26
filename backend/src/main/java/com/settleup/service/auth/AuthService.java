@@ -66,6 +66,34 @@ public class AuthService {
         refreshTokenRepository.revokeAllByUser(user);
     }
 
+    public TokenResponse devLogin() {
+        Optional<SocialAccount> existing = socialAccountRepository
+                .findByProviderAndProviderUserId(SocialProvider.NONE, "test-user");
+
+        User user;
+        if (existing.isPresent()) {
+            user = existing.get().getUser();
+        } else {
+            user = userRepository.save(
+                    User.builder()
+                            .name("테스트유저")
+                            .email("dev@settleup.local")
+                            .build()
+            );
+            socialAccountRepository.save(
+                    SocialAccount.builder()
+                            .user(user)
+                            .provider(SocialProvider.NONE)
+                            .providerUserId("test-user")
+                            .providerEmail("dev@settleup.local")
+                            .providerName("테스트유저")
+                            .build()
+            );
+        }
+
+        return generateTokenResponse(user);
+    }
+
     public void cleanupExpiredTokens() {
         refreshTokenRepository.deleteExpiredAndRevoked(LocalDateTime.now());
     }

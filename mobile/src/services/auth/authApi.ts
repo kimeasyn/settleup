@@ -35,6 +35,11 @@ export async function loginWithKakao(accessToken: string): Promise<LoginResponse
   return response.data;
 }
 
+export async function devLogin(): Promise<LoginResponse> {
+  const response = await apiClient.post<LoginResponse>('/auth/dev-login');
+  return response.data;
+}
+
 export async function refreshAccessToken(refreshToken: string): Promise<LoginResponse> {
   const response = await apiClient.post<LoginResponse>('/auth/refresh', {
     refreshToken,

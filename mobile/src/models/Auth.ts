@@ -23,4 +23,4 @@ export interface LoginResponse {
   userEmail: string;
 }
 
-export type SocialProvider = 'google' | 'kakao';
+export type SocialProvider = 'google' | 'kakao' | 'dev';

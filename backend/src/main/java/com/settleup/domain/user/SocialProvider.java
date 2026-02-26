@@ -5,5 +5,6 @@ package com.settleup.domain.user;
  */
 public enum SocialProvider {
     GOOGLE,
-    KAKAO
+    KAKAO,
+    NONE
 }
