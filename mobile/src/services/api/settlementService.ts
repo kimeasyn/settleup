@@ -487,6 +487,25 @@ export const joinByInviteCode = async (
 };
 
 /**
+ * AI 카테고리 예측
+ * @param description 지출 설명
+ * @returns 예측 결과 또는 null (서비스 불가 시)
+ */
+export const predictCategory = async (
+  description: string
+): Promise<{ category: string; confidence: number } | null> => {
+  try {
+    const response = await apiClient.post<{ category: string; confidence: number }>(
+      '/expenses/predict-category',
+      { description }
+    );
+    return response.data;
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
  * SettlementService 객체 내보내기 (선택적 사용)
  */
 export const SettlementService = {
@@ -510,6 +529,7 @@ export const SettlementService = {
   generateInviteCode,
   joinByInviteCode,
   joinByCode,
+  predictCategory,
 };
 
 export default SettlementService;

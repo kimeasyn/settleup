@@ -9,9 +9,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Participant } from '../models/Participant';
 import { CreateExpenseRequest, CreateExpenseSplitRequest } from '../models/Expense';
+import { predictCategory } from '../services/api/settlementService';
 import { Toast } from './ToastMessage';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
@@ -42,6 +44,7 @@ export default function AddExpenseModal({
   const [category, setCategory] = useState<string>('');
   const [payerId, setPayerId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const activeParticipants = participants.filter(p => p.isActive);
 
@@ -62,6 +65,23 @@ export default function AddExpenseModal({
     setDescription('');
     setCategory('');
     setPayerId(activeParticipants[0]?.id || '');
+    setAiLoading(false);
+  };
+
+  const handleDescriptionBlur = async () => {
+    const trimmed = description.trim();
+    if (category || trimmed.length < 2 || aiLoading) {
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const result = await predictCategory(trimmed);
+      if (result && CATEGORIES.includes(result.category)) {
+        setCategory(result.category);
+      }
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   /**
@@ -184,6 +204,7 @@ export default function AddExpenseModal({
                 placeholder="지출 설명을 입력하세요"
                 value={description}
                 onChangeText={setDescription}
+                onBlur={handleDescriptionBlur}
                 maxLength={200}
                 editable={!submitting}
               />
@@ -192,7 +213,10 @@ export default function AddExpenseModal({
 
             {/* 카테고리 */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>카테고리</Text>
+              <View style={styles.categoryLabelRow}>
+                <Text style={[styles.label, { marginBottom: 0 }]}>카테고리</Text>
+                {aiLoading && <ActivityIndicator size="small" color="#2196F3" />}
+              </View>
               <View style={styles.categoryContainer}>
                 {CATEGORIES.map(cat => (
                   <TouchableOpacity
@@ -344,6 +368,12 @@ const styles = StyleSheet.create({
     color: '#9E9E9E',
     marginTop: 4,
     textAlign: 'right',
+  },
+  categoryLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   categoryContainer: {
     flexDirection: 'row',
