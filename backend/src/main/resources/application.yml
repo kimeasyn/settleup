@@ -69,3 +69,8 @@ springdoc:
     display-request-duration: true
     try-it-out-enabled: true
   show-actuator: false
+
+ai:
+  classifier:
+    url: ${AI_CLASSIFIER_URL:http://category-classifier:8000}
+    enabled: ${AI_CLASSIFIER_ENABLED:true}
