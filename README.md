@@ -106,15 +106,21 @@ settleup/
         └── research.md
 ```
 
-## 빠른 시작
+## 환경 구성
+
+| 환경 | 백엔드 | DB | AI 분류 | 용도 |
+|------|--------|------|---------|------|
+| local | 로컬 실행 | 로컬 PostgreSQL | 비활성 | 개발 |
+| dev | 홈랩 K8s | K8s PostgreSQL | K8s category-classifier | 테스트 |
+| prod | AWS | RDS | 추후 결정 | 운영 |
+
+## 빠른 시작 (local)
 
 ### 사전 요구사항
 
 - Node.js 18.x 이상
 - Java JDK 17 이상
-- Python 3.10 이상
 - Docker 20.x 이상
-- Docker Compose 2.x 이상
 
 ### 1. 저장소 클론
 
@@ -123,46 +129,73 @@ git clone https://github.com/kimeasyn/settleup.git
 cd settleup
 ```
 
-### 2. 인프라 시작 (PostgreSQL, Redis)
+### 2. DB 실행
 
 ```bash
-cd infrastructure/docker
-docker-compose up -d
+docker compose up -d
 ```
 
-### 3. 백엔드 실행
+### 3. 백엔드 설정 및 실행
+
+`backend/src/main/resources/application-local.yml`을 생성한 후 실행:
 
 ```bash
-cd backend
-./gradlew bootRun
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 ```
 
-서버가 http://localhost:8080 에서 실행됩니다.
-
-API 문서: http://localhost:8080/api/v1/swagger-ui.html
+- API: http://localhost:8080/api/v1
+- Swagger: http://localhost:8080/api/v1/swagger-ui.html
 
 ### 4. 모바일 앱 실행
 
 ```bash
 cd mobile
 npm install
-npm start
+npx expo start
 ```
 
-Expo 개발 서버가 실행되며, QR 코드를 스캔하여 Expo Go 앱에서 실행하거나 시뮬레이터를 사용할 수 있습니다.
+Expo 개발 서버가 실행되며, 시뮬레이터 또는 Expo Go에서 확인 가능합니다.
 
-### 5. ML 서비스 실행 (선택)
+## 환경별 실행 방법
+
+### Backend
+
+```bash
+# local — 로컬 PostgreSQL, AI 분류 비활성
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+
+# dev — K8s Deployment env에 설정
+SPRING_PROFILES_ACTIVE=dev
+
+# prod — AWS Deployment env에 설정
+SPRING_PROFILES_ACTIVE=prod
+```
+
+환경별 설정 파일(`application-local.yml`, `application-dev.yml`, `application-prod.yml`)은
+gitignore 대상이므로 각 환경에서 직접 생성해야 합니다.
+
+### Mobile
+
+```bash
+# local — Expo 개발 서버 (localhost API)
+npx expo start
+
+# dev — APK 빌드 (홈랩 API)
+eas build -p android --profile dev
+
+# prod — 프로덕션 빌드 (AWS API)
+eas build -p android --profile production
+```
+
+### AI 분류 서비스 (선택)
 
 ```bash
 cd ml-service
 python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate
 pip install -r requirements.txt
-cd src
 uvicorn api.main:app --reload --port 8000
 ```
-
-ML 서비스가 http://localhost:8000 에서 실행됩니다.
 
 ## API 테스트
 
