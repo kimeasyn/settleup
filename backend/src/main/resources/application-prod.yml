@@ -1,0 +1,115 @@
+# ============================================
+# SettleUp Backend - Production Profile
+# ============================================
+# 활성화 방법: SPRING_PROFILES_ACTIVE=prod
+# ECS Task Definition에서 환경변수로 주입
+# ============================================
+
+spring:
+  # --- 데이터소스 (RDS PostgreSQL) ---
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      # 커넥션 풀 설정 (Fargate 0.5vCPU 기준)
+      # 공식: connections = (cpu_cores * 2) + disk_spindles
+      # Fargate 0.5vCPU → 약 5개가 적정, 여유분 포함 10개
+      maximum-pool-size: 10
+      minimum-idle: 5
+      # 커넥션 유효성 검증 (RDS failover 시 stale 커넥션 방지)
+      connection-timeout: 5000      # 5초 내 커넥션 획득 못하면 에러
+      validation-timeout: 3000      # 커넥션 유효성 검증 타임아웃
+      idle-timeout: 300000          # 5분 유휴 시 커넥션 반환
+      max-lifetime: 600000          # 10분마다 커넥션 갱신 (RDS 권장)
+      leak-detection-threshold: 30000  # 30초 이상 반환 안 되면 경고 로그
+
+  # --- JPA ---
+  jpa:
+    hibernate:
+      # ⚠️ 프로덕션 필수: validate (스키마 검증만, 변경 안 함)
+      # Flyway가 마이그레이션 담당, Hibernate는 엔티티-스키마 일치만 확인
+      ddl-auto: validate
+    # SQL 로그 비활성화 (성능 + 보안)
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        # 배치 처리 최적화 (정산 계산 시 다건 INSERT에 유용)
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  # --- Redis (ElastiCache) ---
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      # ElastiCache는 기본적으로 비밀번호 없음 (VPC 내부 통신)
+      # AUTH 토큰 사용 시 아래 주석 해제
+      # password: ${REDIS_PASSWORD}
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+
+  # --- Flyway ---
+  flyway:
+    enabled: true
+    # 프로덕션에서는 out-of-order 비활성화 (마이그레이션 순서 보장)
+    out-of-order: false
+
+# --- 서버 설정 ---
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+  # Graceful Shutdown: ECS 태스크 종료 시 진행 중인 요청을 완료한 후 종료
+  # ECS stopTimeout(30초)과 맞춤
+  shutdown: graceful
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 25s
+
+# --- 로깅 ---
+logging:
+  level:
+    root: INFO
+    # 애플리케이션 로그 (패키지명은 실제 프로젝트에 맞게 수정)
+    com.settleup: INFO
+    # Hibernate SQL 로그 비활성화
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    # Spring Security 디버그 비활성화
+    org.springframework.security: WARN
+  # JSON 포맷 로깅 (CloudWatch에서 파싱/검색 용이)
+  pattern:
+    console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","logger":"%logger{36}","message":"%msg","thread":"%thread"}%n'
+
+# --- Actuator (헬스체크) ---
+management:
+  endpoints:
+    web:
+      exposure:
+        # ECS/ALB 헬스체크에 필요한 엔드포인트만 노출
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      # DB, Redis 연결 상태까지 상세 체크
+      show-details: always
+  health:
+    # 개별 컴포넌트 헬스체크 활성화
+    db:
+      enabled: true
+    redis:
+      enabled: true
+
+# --- AI 분류 서비스 ---
+ai:
+  classifier:
+    url: ${AI_CLASSIFIER_URL}
+    enabled: ${AI_CLASSIFIER_ENABLED:true}

@@ -82,6 +82,9 @@ application-local.yml
 application-secret.yml
 application-*.yml
 !application.yml
+!application-local.yml
+!application-dev.yml
+!application-prod.yml
 !application-local.yml.example
 
 # Misc

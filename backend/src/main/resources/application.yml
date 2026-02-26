@@ -17,7 +17,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update  # 개발 중에는 update 사용, 프로덕션에서는 validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -31,9 +31,6 @@ server:
   servlet:
     context-path: /api/v1
 
-# OAuth 설정
-# Google: ID Token 검증 시 audience로 사용
-# Kakao: OIDC ID Token 검증 시 audience(aud) 클레임 검증에 사용 (Native App Key)
 oauth:
   google:
     client-id-ios: ${GOOGLE_CLIENT_ID_IOS:your-google-client-id-ios}
@@ -41,11 +38,10 @@ oauth:
   kakao:
     native-app-key: ${KAKAO_NATIVE_APP_KEY:your-kakao-native-app-key}
 
-# JWT 설정
 jwt:
   secret: ${JWT_SECRET:your-jwt-secret-must-be-at-least-32-characters-long}
-  access-token-expiry: 1800000   # 30분 (milliseconds)
-  refresh-token-expiry: 1209600000  # 14일 (milliseconds)
+  access-token-expiry: 1800000
+  refresh-token-expiry: 1209600000
 
 logging:
   level:
@@ -56,7 +52,6 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
-# Swagger/OpenAPI 설정
 springdoc:
   api-docs:
     path: /api-docs
@@ -72,5 +67,5 @@ springdoc:
 
 ai:
   classifier:
-    url: ${AI_CLASSIFIER_URL:http://category-classifier:8000}
-    enabled: ${AI_CLASSIFIER_ENABLED:true}
+    url: ${AI_CLASSIFIER_URL:http://localhost:8000}
+    enabled: ${AI_CLASSIFIER_ENABLED:false}
