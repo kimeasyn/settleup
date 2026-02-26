@@ -29,8 +29,8 @@ const APP_ENV = Constants.expoConfig?.extra?.appEnv ?? 'local';
 
 const API_URLS: Record<string, string> = {
   local: 'http://localhost:8080/api/v1',
-  dev: 'http://dev.api.address/api/v1',
-  prod: Constants.expoConfig?.extra?.apiBaseUrl ?? 'http://settleup-alb-1837776955.ap-northeast-2.elb.amazonaws.com/api/v1',
+  dev: 'http://dev.api.address:8888/api/v1',
+  prod: Constants.expoConfig?.extra?.apiBaseUrl ?? 'https://api.settleup.com/api/v1',
 };
 
 const API_BASE_URL = __DEV__

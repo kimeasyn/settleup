@@ -72,7 +72,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       projectId: "edd6813d-018e-4d92-a94a-0cf5db882276",
     },
     appEnv: process.env.APP_ENV || 'local',
-    apiBaseUrl: process.env.API_BASE_URL || 'http://settleup-alb-1837776955.ap-northeast-2.elb.amazonaws.com/api/v1',
+    apiBaseUrl: process.env.API_BASE_URL || 'https://api.settleup.com/api/v1',
     googleClientIdIos: process.env.GOOGLE_CLIENT_ID_IOS || 'placeholder',
     googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID || 'placeholder',
     kakaoNativeAppKey: process.env.KAKAO_NATIVE_APP_KEY || 'placeholder',
