@@ -183,19 +183,6 @@ export default function AddExpenseModal({
 
           {/* 폼 */}
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.form}>
-            {/* 금액 */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>금액 *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-                editable={!submitting}
-              />
-            </View>
-
             {/* 설명 */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>설명 *</Text>
@@ -209,6 +196,19 @@ export default function AddExpenseModal({
                 editable={!submitting}
               />
               <Text style={styles.hint}>{description.length}/200</Text>
+            </View>
+
+            {/* 금액 */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>금액 *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+                editable={!submitting}
+              />
             </View>
 
             {/* 카테고리 */}
