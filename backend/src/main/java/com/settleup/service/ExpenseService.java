@@ -59,6 +59,10 @@ public class ExpenseService {
             throw new BusinessException("지출자가 해당 정산에 속하지 않습니다");
         }
 
+        if (!payer.getIsActive()) {
+            throw new BusinessException("비활성화된 참가자는 지출자로 설정할 수 없습니다.");
+        }
+
         // 지출 생성
         Expense expense = Expense.builder()
                 .settlement(settlement)

@@ -4,6 +4,7 @@ import com.settleup.domain.game.GameRound;
 import com.settleup.domain.game.GameRoundEntry;
 import com.settleup.domain.participant.Participant;
 import com.settleup.dto.GameRoundDto.*;
+import com.settleup.exception.BusinessException;
 import com.settleup.exception.ResourceNotFoundException;
 import com.settleup.repository.GameRoundEntryRepository;
 import com.settleup.repository.GameRoundRepository;
@@ -110,6 +111,12 @@ public class GameRoundService {
 
         // excludedParticipantIds 저장
         if (request.getExcludedParticipantIds() != null) {
+            List<Participant> activeParticipants = participantRepository
+                    .findBySettlementIdAndIsActive(round.getSettlementId(), true);
+            long includedCount = activeParticipants.size() - request.getExcludedParticipantIds().size();
+            if (includedCount < 2) {
+                throw new BusinessException("라운드에는 최소 2명의 참가자가 필요합니다.");
+            }
             round.setExcludedParticipantIdList(request.getExcludedParticipantIds());
         } else {
             round.setExcludedParticipantIdList(Collections.emptyList());

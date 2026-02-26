@@ -136,6 +136,15 @@ public class ParticipantService {
             throw new BusinessException("완료된 정산의 참가자 상태를 변경할 수 없습니다.");
         }
 
+        // 마지막 활성 참가자 비활성화 차단
+        if (!isActive) {
+            long activeCount = participantRepository
+                    .countBySettlementIdAndIsActive(participant.getSettlementId(), true);
+            if (activeCount <= 1) {
+                throw new BusinessException("마지막 활성 참가자는 비활성화할 수 없습니다.");
+            }
+        }
+
         participant.setIsActive(isActive);
         Participant updated = participantRepository.save(participant);
 

@@ -142,6 +142,11 @@ export default function ExpenseListScreen() {
                 Toast.warning('지출을 추가하려면 먼저 참가자를 추가해주세요.');
                 return;
               }
+              const activeParticipants = participants.filter(p => p.isActive);
+              if (activeParticipants.length === 0) {
+                Toast.warning('활성 참가자가 없어 지출을 추가할 수 없습니다.');
+                return;
+              }
               setAddModalVisible(true);
             }}
           >

@@ -87,6 +87,15 @@ export default function ParticipantManagementScreen() {
   };
 
   const handleToggleParticipant = async (participantId: string, isActive: boolean) => {
+    // 마지막 활성 참가자 비활성화 차단
+    if (!isActive) {
+      const activeCount = participants.filter(p => p.isActive).length;
+      if (activeCount <= 1) {
+        Toast.warning('마지막 활성 참가자는 비활성화할 수 없습니다.');
+        return;
+      }
+    }
+
     try {
       await toggleParticipantStatus(settlementId, participantId, isActive);
       await loadParticipants();
