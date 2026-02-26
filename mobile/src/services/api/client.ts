@@ -23,19 +23,9 @@ function notifyAuthExpired() {
   authExpiredListeners.forEach((listener) => listener());
 }
 
-// 환경에 따른 API URL 설정
-// APP_ENV: local(기본) | dev | prod
-const APP_ENV = Constants.expoConfig?.extra?.appEnv ?? 'local';
-
-const API_URLS: Record<string, string> = {
-  local: 'http://localhost:8080/api/v1',
-  dev: 'http://dev.api.address:8888/api/v1',
-  prod: Constants.expoConfig?.extra?.apiBaseUrl ?? 'https://api.settleup.com/api/v1',
-};
-
-const API_BASE_URL = __DEV__
-  ? API_URLS.local
-  : (API_URLS[APP_ENV] ?? API_URLS.prod);
+// API URL은 app.config.ts → extra.apiBaseUrl에서 주입
+// 빌드별 URL은 eas.json env 또는 .env 파일로 설정
+const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl ?? 'http://localhost:8080/api/v1';
 
 /**
  * Axios 인스턴스 생성

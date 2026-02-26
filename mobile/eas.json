@@ -17,13 +17,13 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_ENV": "dev"
+        "API_BASE_URL": "REPLACE_WITH_DEV_API_URL"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "APP_ENV": "prod"
+        "API_BASE_URL": "REPLACE_WITH_PROD_API_URL"
       }
     }
   },
