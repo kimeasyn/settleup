@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -45,6 +45,11 @@ export default function AddExpenseModal({
   const [payerId, setPayerId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiPredictedCategory, setAiPredictedCategory] = useState<string | null>(null);
+  const [aiPredictedConfidence, setAiPredictedConfidence] = useState<number | null>(null);
+  const [aiCalled, setAiCalled] = useState(false);
+  const [aiFailed, setAiFailed] = useState(false);
+  const userManuallySelectedCategory = useRef(false);
 
   const activeParticipants = participants.filter(p => p.isActive);
 
@@ -66,6 +71,11 @@ export default function AddExpenseModal({
     setCategory('');
     setPayerId(activeParticipants[0]?.id || '');
     setAiLoading(false);
+    setAiPredictedCategory(null);
+    setAiPredictedConfidence(null);
+    setAiCalled(false);
+    setAiFailed(false);
+    userManuallySelectedCategory.current = false;
   };
 
   const handleDescriptionBlur = async () => {
@@ -74,11 +84,20 @@ export default function AddExpenseModal({
       return;
     }
     setAiLoading(true);
+    setAiCalled(true);
     try {
       const result = await predictCategory(trimmed);
       if (result && CATEGORIES.includes(result.category)) {
-        setCategory(result.category);
+        setAiPredictedCategory(result.category);
+        setAiPredictedConfidence(result.confidence ?? null);
+        if (!userManuallySelectedCategory.current) {
+          setCategory(result.category);
+        }
+      } else {
+        setAiFailed(true);
       }
+    } catch {
+      setAiFailed(true);
     } finally {
       setAiLoading(false);
     }
@@ -133,13 +152,27 @@ export default function AddExpenseModal({
         .toISOString()
         .slice(0, -1); // 'Z' 제거
 
+      // source 계산
+      let source: string;
+      if (!aiCalled) {
+        source = 'USER_SELECTED';
+      } else if (aiFailed) {
+        source = 'AI_FAILED';
+      } else if (category === aiPredictedCategory) {
+        source = 'AI_ACCEPTED';
+      } else {
+        source = 'AI_MODIFIED';
+      }
+
       const data: CreateExpenseRequest = {
         payerId,
         amount: amountNum,
         category: category || undefined,
         description: description.trim(),
         expenseDate,
-        // splits는 나중에 정산 계산 시 지정
+        predictedCategory: aiPredictedCategory ?? undefined,
+        predictedConfidence: aiPredictedConfidence ?? undefined,
+        source,
       };
 
       await onSubmit(data);
@@ -225,7 +258,10 @@ export default function AddExpenseModal({
                       styles.categoryChip,
                       category === cat && styles.categoryChipActive,
                     ]}
-                    onPress={() => setCategory(category === cat ? '' : cat)}
+                    onPress={() => {
+                      userManuallySelectedCategory.current = true;
+                      setCategory(category === cat ? '' : cat);
+                    }}
                     disabled={submitting}
                   >
                     <Text

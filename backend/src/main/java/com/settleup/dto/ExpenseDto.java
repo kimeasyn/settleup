@@ -56,6 +56,18 @@ public class ExpenseDto {
         @Schema(description = "지출 분담 내역 (선택사항, 나중에 정산 계산 시 지정 가능)", required = false)
         @Valid
         private List<ExpenseSplitRequest> splits;
+
+        @Schema(description = "AI 예측 카테고리", example = "식비")
+        @Size(max = 50)
+        private String predictedCategory;
+
+        @Schema(description = "AI 예측 신뢰도", example = "0.85")
+        private Double predictedConfidence;
+
+        @Schema(description = "카테고리 선택 소스", example = "AI_ACCEPTED",
+                allowableValues = {"AI_ACCEPTED", "AI_MODIFIED", "USER_SELECTED", "AI_FAILED"})
+        @Size(max = 20)
+        private String source;
     }
 
     /**

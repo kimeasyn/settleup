@@ -98,6 +98,15 @@ export interface CreateExpenseRequest {
 
   /** 지출 분담 정보 (선택사항, 나중에 정산 계산 시 지정 가능) */
   splits?: CreateExpenseSplitRequest[];
+
+  /** AI 예측 카테고리 */
+  predictedCategory?: string;
+
+  /** AI 예측 신뢰도 */
+  predictedConfidence?: number;
+
+  /** 카테고리 선택 소스 (AI_ACCEPTED | AI_MODIFIED | USER_SELECTED | AI_FAILED) */
+  source?: string;
 }
 
 /**

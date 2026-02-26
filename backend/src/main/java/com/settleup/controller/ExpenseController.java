@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -67,12 +68,13 @@ public class ExpenseController {
                     description = "지출 정보",
                     required = true
             )
-            ExpenseRequest request) {
+            ExpenseRequest request,
+            @AuthenticationPrincipal UUID userId) {
 
         log.info("POST /settlements/{}/expenses - Creating expense: {}",
                 settlementId, request.getDescription());
 
-        ExpenseResponse response = expenseService.createExpense(settlementId, request);
+        ExpenseResponse response = expenseService.createExpense(settlementId, request, userId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

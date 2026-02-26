@@ -14,6 +14,7 @@ import com.settleup.exception.ResourceNotFoundException;
 import com.settleup.repository.ExpenseRepository;
 import com.settleup.repository.ExpenseSplitRepository;
 import com.settleup.repository.ParticipantRepository;
+import com.settleup.repository.PredictionLogRepository;
 import com.settleup.repository.SettlementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +57,9 @@ class ExpenseServiceTest {
 
     @Mock
     private SettlementService settlementService;
+
+    @Mock
+    private PredictionLogRepository predictionLogRepository;
 
     @InjectMocks
     private ExpenseService expenseService;
@@ -126,7 +130,7 @@ class ExpenseServiceTest {
         when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
 
         // when
-        ExpenseResponse response = expenseService.createExpense(settlementId, request);
+        ExpenseResponse response = expenseService.createExpense(settlementId, request, null);
 
         // then
         assertThat(response).isNotNull();
@@ -157,7 +161,7 @@ class ExpenseServiceTest {
         when(settlementRepository.findById(settlementId)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> expenseService.createExpense(settlementId, request))
+        assertThatThrownBy(() -> expenseService.createExpense(settlementId, request, null))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Settlement");
 
@@ -179,7 +183,7 @@ class ExpenseServiceTest {
         when(participantRepository.findById(participantId)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> expenseService.createExpense(settlementId, request))
+        assertThatThrownBy(() -> expenseService.createExpense(settlementId, request, null))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Participant");
 
@@ -209,7 +213,7 @@ class ExpenseServiceTest {
         when(participantRepository.findById(participantId)).thenReturn(Optional.of(otherParticipant));
 
         // when & then
-        assertThatThrownBy(() -> expenseService.createExpense(settlementId, request))
+        assertThatThrownBy(() -> expenseService.createExpense(settlementId, request, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("해당 정산에 속하지 않습니다");
 

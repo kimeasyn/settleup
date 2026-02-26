@@ -7,9 +7,11 @@ import com.settleup.domain.settlement.Settlement;
 import com.settleup.dto.ExpenseDto.*;
 import com.settleup.exception.BusinessException;
 import com.settleup.exception.ResourceNotFoundException;
+import com.settleup.domain.prediction.PredictionLog;
 import com.settleup.repository.ExpenseRepository;
 import com.settleup.repository.ExpenseSplitRepository;
 import com.settleup.repository.ParticipantRepository;
+import com.settleup.repository.PredictionLogRepository;
 import com.settleup.repository.SettlementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,12 +37,13 @@ public class ExpenseService {
     private final SettlementRepository settlementRepository;
     private final ParticipantRepository participantRepository;
     private final SettlementService settlementService;
+    private final PredictionLogRepository predictionLogRepository;
 
     /**
      * 지출 생성
      */
     @Transactional
-    public ExpenseResponse createExpense(UUID settlementId, ExpenseRequest request) {
+    public ExpenseResponse createExpense(UUID settlementId, ExpenseRequest request, UUID userId) {
         log.info("Creating expense: settlementId={}, description={}, amount={}",
                 settlementId, request.getDescription(), request.getAmount());
 
@@ -74,6 +77,20 @@ public class ExpenseService {
                 .build();
 
         Expense savedExpense = expenseRepository.save(expense);
+
+        // AI 예측 로그 저장
+        if (request.getSource() != null && userId != null) {
+            PredictionLog predictionLog = PredictionLog.builder()
+                    .description(request.getDescription())
+                    .predictedCategory(request.getPredictedCategory())
+                    .predictedConfidence(request.getPredictedConfidence())
+                    .finalCategory(request.getCategory() != null ? request.getCategory() : "기타")
+                    .source(request.getSource())
+                    .userId(userId)
+                    .build();
+            predictionLogRepository.save(predictionLog);
+            log.info("PredictionLog saved: source={}, userId={}", request.getSource(), userId);
+        }
 
         // 분담 내역 생성 (선택사항)
         List<ExpenseSplit> splits = List.of();
